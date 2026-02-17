@@ -15,6 +15,7 @@ import {
   ErrParseJSON,
   natsSubject,
   translateWildcard,
+  matchRoutingKey,
 } from "@gomessaging/spec";
 import { extractToContext } from "./tracing.js";
 import type { TextMapPropagator } from "@opentelemetry/api";
@@ -163,7 +164,13 @@ export async function startJSConsumers(
           routingKey = subject.substring(dotIdx + 1);
         }
 
-        const handler = handlerMap.get(routingKey);
+        let handler: EventHandler<unknown> | undefined;
+        for (const [pattern, h] of handlerMap) {
+          if (matchRoutingKey(pattern, routingKey)) {
+            handler = h;
+            break;
+          }
+        }
         if (!handler) {
           logger.warn(`[gomessaging/nats] No handler for routingKey=${routingKey} on stream=${stream}`);
           msg.nak();

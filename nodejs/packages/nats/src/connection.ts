@@ -33,6 +33,8 @@ export interface ConnectionOptions {
   logger?: Pick<Console, "info" | "warn" | "error" | "debug">;
   /** Optional OTel propagator for trace context propagation */
   propagator?: TextMapPropagator;
+  /** Timeout in milliseconds for NATS Core request-reply operations. Default: 30000 (30s). */
+  requestTimeout?: number;
 }
 
 /**
@@ -46,6 +48,7 @@ export class Connection {
   private readonly logger: Pick<Console, "info" | "warn" | "error" | "debug">;
   private readonly propagator?: TextMapPropagator;
   private readonly endpoints: Endpoint[] = [];
+  private readonly requestTimeout: number;
 
   private nc: NatsConnection | null = null;
   private js: JetStreamClient | null = null;
@@ -64,6 +67,7 @@ export class Connection {
     this.serviceName = options.serviceName;
     this.logger = options.logger ?? console;
     this.propagator = options.propagator;
+    this.requestTimeout = options.requestTimeout ?? 30_000;
   }
 
   /**
@@ -275,7 +279,7 @@ export class Connection {
 
     // Wire Core request publishers
     for (const { publisher } of this.corePublisherTargets) {
-      publisher.wireCoreRequest(this.nc);
+      publisher.wireCoreRequest(this.nc, this.requestTimeout);
     }
 
     // Start JetStream consumers

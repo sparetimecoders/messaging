@@ -126,6 +126,26 @@ describe("Publisher", () => {
       expect(JSON.parse(new TextDecoder().decode(args[1]))).toEqual({ orderId: "456" });
       expect(args[2].timeout).toBe(5000);
     });
+
+    it("uses default 30s timeout when not specified", async () => {
+      const publisher = new Publisher({
+        serviceName: "test-service",
+        stream: "order-service",
+      });
+
+      const mockNc = {
+        request: vi.fn(async () => {
+          return { data: new Uint8Array() };
+        }),
+      };
+
+      publisher.wireCoreRequest(mockNc as never);
+
+      await publisher.publish("get-order", { orderId: "456" });
+
+      const args = mockNc.request.mock.calls[0] as unknown as [string, Uint8Array, { timeout: number; headers: unknown }];
+      expect(args[2].timeout).toBe(30_000);
+    });
   });
 
   describe("subject naming", () => {

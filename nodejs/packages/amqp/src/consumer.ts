@@ -12,6 +12,8 @@ import {
   ErrParseJSON,
   metadataFromHeaders,
   validateCEHeaders,
+  matchRoutingKey,
+  routingKeyOverlaps,
 } from "@gomessaging/spec";
 import type { TextMapPropagator } from "@opentelemetry/api";
 import { extractToContext } from "./tracing.js";
@@ -39,10 +41,12 @@ export class QueueConsumer {
   }
 
   addHandler(routingKey: string, handler: EventHandler<unknown>): void {
-    if (this.handlers.has(routingKey)) {
-      throw new Error(
-        `routing key "${routingKey}" already registered for queue "${this.queue}"`,
-      );
+    for (const existingKey of this.handlers.keys()) {
+      if (routingKeyOverlaps(routingKey, existingKey)) {
+        throw new Error(
+          `routing key "${routingKey}" overlaps "${existingKey}" for queue "${this.queue}"`,
+        );
+      }
     }
     this.handlers.set(routingKey, handler);
   }
@@ -73,7 +77,13 @@ export class QueueConsumer {
   private handleMessage(channel: amqplib.Channel, msg: amqplib.ConsumeMessage): void {
     const deliveryInfo = getDeliveryInfo(this.queue, msg);
 
-    const handler = this.handlers.get(deliveryInfo.key);
+    let handler: EventHandler<unknown> | undefined;
+    for (const [pattern, h] of this.handlers) {
+      if (matchRoutingKey(pattern, deliveryInfo.key)) {
+        handler = h;
+        break;
+      }
+    }
     if (!handler) {
       this.logger.warn(
         `[gomessaging/amqp] no handler for routing key "${deliveryInfo.key}" on queue "${this.queue}", rejecting`,

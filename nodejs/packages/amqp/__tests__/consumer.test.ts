@@ -230,8 +230,56 @@ describe("QueueConsumer", () => {
   it("throws when registering duplicate routing key", () => {
     consumer.addHandler("order.created", vi.fn());
     expect(() => consumer.addHandler("order.created", vi.fn())).toThrow(
-      'routing key "order.created" already registered',
+      'routing key "order.created" overlaps "order.created"',
     );
+  });
+
+  it("throws when registering overlapping wildcard routing key", () => {
+    consumer.addHandler("order.#", vi.fn());
+    expect(() => consumer.addHandler("order.created", vi.fn())).toThrow(
+      'routing key "order.created" overlaps "order.#"',
+    );
+  });
+
+  it("matches handler using wildcard pattern", async () => {
+    const handler = vi.fn().mockResolvedValue(undefined);
+    consumer.addHandler("order.#", handler);
+    await consumer.consume(channel as unknown as import("amqplib").Channel);
+
+    const msg = createMessage("order.created", { orderId: "123" });
+    channel.deliverMessage(msg);
+
+    await vi.waitFor(() => {
+      expect(channel.ack).toHaveBeenCalledWith(msg);
+    });
+    expect(handler).toHaveBeenCalledOnce();
+    expect(handler.mock.calls[0][0].deliveryInfo.key).toBe("order.created");
+  });
+
+  it("matches handler using star wildcard pattern", async () => {
+    const handler = vi.fn().mockResolvedValue(undefined);
+    consumer.addHandler("order.*", handler);
+    await consumer.consume(channel as unknown as import("amqplib").Channel);
+
+    const msg = createMessage("order.created", { orderId: "123" });
+    channel.deliverMessage(msg);
+
+    await vi.waitFor(() => {
+      expect(channel.ack).toHaveBeenCalledWith(msg);
+    });
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("star wildcard does not match multi-level routing key", async () => {
+    consumer.addHandler("order.*", vi.fn().mockResolvedValue(undefined));
+    await consumer.consume(channel as unknown as import("amqplib").Channel);
+
+    const msg = createMessage("order.created.v2", { orderId: "123" });
+    channel.deliverMessage(msg);
+
+    await vi.waitFor(() => {
+      expect(channel.nack).toHaveBeenCalledWith(msg, false, false);
+    });
   });
 
   it("returns consumer tag from consume()", async () => {

@@ -251,6 +251,78 @@ describe("JetStream consumers", () => {
     expect(js.consumers.get).toHaveBeenCalledWith("events", "test-durable");
   });
 
+  it("dispatches messages using wildcard pattern matching", async () => {
+    const received: unknown[] = [];
+    const acked: boolean[] = [];
+    const nacked: boolean[] = [];
+
+    // Create a mock message iterator that yields one message
+    const mockMessages = {
+      stop: vi.fn(),
+      [Symbol.asyncIterator]: async function* () {
+        yield {
+          subject: "events.Order.Created",
+          data: new TextEncoder().encode(JSON.stringify({ orderId: "999" })),
+          headers: (() => {
+            const entries: Array<[string, string[]]> = [
+              ["ce-specversion", ["1.0"]],
+              ["ce-type", ["Order.Created"]],
+              ["ce-source", ["test"]],
+              ["ce-id", ["id-1"]],
+              ["ce-time", ["2026-01-01T00:00:00Z"]],
+            ];
+            const map = new Map(entries);
+            return {
+              get(k: string) { return map.get(k)?.[0] ?? ""; },
+              has(k: string) { return map.has(k); },
+              keys() { return [...map.keys()]; },
+              [Symbol.iterator]() { return map.entries(); },
+            };
+          })(),
+          ack() { acked.push(true); },
+          nak() { nacked.push(true); },
+          term() {},
+        };
+      },
+    };
+
+    const mockConsumer = {
+      consume: vi.fn().mockResolvedValue(mockMessages),
+    };
+
+    const js = {
+      consumers: {
+        get: vi.fn().mockResolvedValue(mockConsumer),
+      },
+    };
+
+    const jsm = {
+      streams: { add: vi.fn().mockResolvedValue({}), update: vi.fn().mockResolvedValue({}) },
+      consumers: { add: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue(true) },
+    };
+
+    const registrations: JSConsumerRegistration<unknown>[] = [
+      {
+        kind: "jetstream",
+        stream: "events",
+        routingKey: "Order.#",
+        handler: async (event) => { received.push(event.payload); },
+        durable: "wildcard-svc",
+      },
+    ];
+
+    await startJSConsumers(js as never, jsm as never, "wildcard-svc", registrations, silentLogger);
+
+    // Wait for the async message processing
+    await vi.waitFor(() => {
+      expect(received).toHaveLength(1);
+    });
+
+    expect(received[0]).toEqual({ orderId: "999" });
+    expect(acked).toHaveLength(1);
+    expect(nacked).toHaveLength(0);
+  });
+
   it("creates separate consumers for different streams", async () => {
     const { js, jsm } = createMockJsAndJsm();
 

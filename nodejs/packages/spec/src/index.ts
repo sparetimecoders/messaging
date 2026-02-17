@@ -52,6 +52,9 @@ export {
   validateCEHeaders,
 } from "./cloudevents.js";
 
+// Routing
+export { matchRoutingKey, routingKeyOverlaps } from "./routing.js";
+
 // Validation
 export { validate, validateTopologies } from "./validate.js";
 
