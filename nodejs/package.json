@@ -1,0 +1,19 @@
+{
+  "name": "@gomessaging/root",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/spec",
+    "packages/amqp",
+    "packages/nats"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

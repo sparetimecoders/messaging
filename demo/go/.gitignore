@@ -1,0 +1,7 @@
+# Go binary
+demo
+
+# Go test/coverage
+*.out
+*.prof
+coverage.*
