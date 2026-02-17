@@ -51,7 +51,7 @@
           "routingKey": "Order.Created",
           "payload": {"orderId":"test-123","amount":42},
           "expectedDeliveries": [
-            {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"}}
+            {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"test-123","amount":42}}
           ]
         }
       ]
@@ -117,8 +117,8 @@
           "routingKey": "Order.Created",
           "payload": {"orderId":"test-456","amount":99},
           "expectedDeliveries": [
-            {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"}},
-            {"to":"analytics","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"}}
+            {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"test-456"}},
+            {"to":"analytics","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"amount":99}}
           ]
         }
       ]
@@ -172,7 +172,7 @@
           "routingKey": "Audit.Entry",
           "payload": {"action":"login","userId":"user-456"},
           "expectedDeliveries": [
-            {"to":"analytics","metadata":{"type":"Audit.Entry","source":"analytics","specVersion":"1.0"}}
+            {"to":"analytics","metadata":{"type":"Audit.Entry","source":"analytics","specVersion":"1.0"},"payloadMatch":{"action":"login","userId":"user-456"}}
           ]
         }
       ]
@@ -228,7 +228,7 @@
           "routingKey": "Order.Created",
           "payload": {"orderId":"test-789","amount":10},
           "expectedDeliveries": [
-            {"to":"dashboard","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"}}
+            {"to":"dashboard","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"test-789"}}
           ]
         }
       ]

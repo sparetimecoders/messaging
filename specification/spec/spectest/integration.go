@@ -59,8 +59,9 @@ type MessageSpec struct {
 
 // ExpectedDelivery describes where a message should be delivered and what to assert.
 type ExpectedDelivery struct {
-	To       string             `json:"to"`
-	Metadata MetadataAssertions `json:"metadata,omitempty"`
+	To           string             `json:"to"`
+	Metadata     MetadataAssertions `json:"metadata,omitempty"`
+	PayloadMatch json.RawMessage    `json:"payloadMatch,omitempty"`
 }
 
 // MetadataAssertions holds optional metadata fields to assert on received messages.
@@ -272,5 +273,19 @@ func assertDelivery(t *testing.T, delivery ExpectedDelivery, handles map[string]
 	if delivery.Metadata.DataContentType != "" {
 		assert.Equal(t, delivery.Metadata.DataContentType, matched.Metadata.DataContentType,
 			"metadata.dataContentType mismatch for delivery to %s", delivery.To)
+	}
+
+	if len(delivery.PayloadMatch) > 0 {
+		assertPayloadMatch(t, delivery.To, matched.Payload, delivery.PayloadMatch)
+	}
+}
+
+func assertPayloadMatch(t *testing.T, target string, actual, expected json.RawMessage) {
+	t.Helper()
+	var actualMap, expectedMap map[string]any
+	require.NoError(t, json.Unmarshal(actual, &actualMap), "failed to unmarshal actual payload for %s", target)
+	require.NoError(t, json.Unmarshal(expected, &expectedMap), "failed to unmarshal expected payload for %s", target)
+	for k, v := range expectedMap {
+		assert.Equal(t, v, actualMap[k], "payload field %q mismatch for delivery to %s", k, target)
 	}
 }
