@@ -66,7 +66,11 @@ func StreamPublisher(stream string, publisher *Publisher) Setup {
 func ServicePublisher(targetService string, publisher *Publisher) Setup {
 	return func(c *Connection) error {
 		if !c.collectMode {
-			publisher.publishFn = coreRequestFn(c.nc, 30*time.Second)
+			timeout := c.requestTimeout
+			if timeout == 0 {
+				timeout = 30 * time.Second
+			}
+			publisher.publishFn = coreRequestFn(c.nc, timeout)
 		}
 		c.log().Info("configured service publisher", "targetService", targetService)
 		c.addEndpoint(spec.Endpoint{

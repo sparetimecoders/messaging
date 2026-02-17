@@ -23,9 +23,7 @@
 package nats
 
 import (
-	"fmt"
-	"regexp"
-	"strings"
+	"github.com/sparetimecoders/gomessaging/spec"
 )
 
 // routingKeyHandler holds the mapping from routing key to a specific handler.
@@ -33,7 +31,7 @@ type routingKeyHandler map[string]wrappedHandler
 
 func (h *routingKeyHandler) get(routingKey string) (wrappedHandler, bool) {
 	for mappedRoutingKey, handler := range *h {
-		if match(mappedRoutingKey, routingKey) {
+		if spec.MatchRoutingKey(mappedRoutingKey, routingKey) {
 			return handler, true
 		}
 	}
@@ -42,17 +40,4 @@ func (h *routingKeyHandler) get(routingKey string) (wrappedHandler, bool) {
 
 func (h *routingKeyHandler) add(routingKey string, handler wrappedHandler) {
 	(*h)[routingKey] = handler
-}
-
-func match(pattern string, routingKey string) bool {
-	b, err := regexp.MatchString(fixRegex(pattern), routingKey)
-	if err != nil {
-		return false
-	}
-	return b
-}
-
-func fixRegex(s string) string {
-	replace := strings.Replace(strings.Replace(strings.Replace(s, ".", "\\.", -1), "*", "[^.]*", -1), "#", ".*", -1)
-	return fmt.Sprintf("^%s$", replace)
 }

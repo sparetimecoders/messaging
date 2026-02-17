@@ -278,6 +278,29 @@ func TestServiceRequestConsumer_HandlerError(t *testing.T) {
 	}
 }
 
+func TestServicePublisher_CustomTimeout(t *testing.T) {
+	s := startTestServer(t)
+	url := serverURL(s)
+
+	pub := NewPublisher()
+	conn, err := NewConnection("timeout-svc", url)
+	require.NoError(t, err)
+
+	err = conn.Start(context.Background(),
+		WithRequestTimeout(200*time.Millisecond),
+		ServicePublisher("nonexistent-svc", pub),
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	start := time.Now()
+	err = pub.Publish(context.Background(), "some.action", testMessage{Name: "test", Value: 1})
+	elapsed := time.Since(start)
+
+	require.Error(t, err, "should timeout when target service does not exist")
+	assert.Less(t, elapsed, 5*time.Second, "should timeout much faster than the default 30s")
+}
+
 func TestTypeMappingHandler_NilMapper(t *testing.T) {
 	handler := TypeMappingHandler(func(ctx context.Context, event spec.ConsumableEvent[any]) error {
 		return nil

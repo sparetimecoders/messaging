@@ -130,6 +130,27 @@ func TestWithStreamConfig_EmptyStreamName(t *testing.T) {
 	assert.Contains(t, err.Error(), "stream name must not be empty")
 }
 
+func TestWithRequestTimeout(t *testing.T) {
+	conn := newConnection("test-svc", "nats://localhost:4222")
+	err := WithRequestTimeout(5 * time.Second)(conn)
+	assert.NoError(t, err)
+	assert.Equal(t, 5*time.Second, conn.requestTimeout)
+}
+
+func TestWithRequestTimeout_Negative(t *testing.T) {
+	conn := newConnection("test-svc", "nats://localhost:4222")
+	err := WithRequestTimeout(-1 * time.Second)(conn)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "request timeout must be positive")
+}
+
+func TestWithRequestTimeout_Zero(t *testing.T) {
+	conn := newConnection("test-svc", "nats://localhost:4222")
+	err := WithRequestTimeout(0)(conn)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "request timeout must be positive")
+}
+
 func TestWithConsumerDefaults(t *testing.T) {
 	conn := newConnection("test-svc", "nats://localhost:4222")
 	err := WithConsumerDefaults(ConsumerDefaults{

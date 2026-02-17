@@ -805,6 +805,139 @@ func Test_CloudEvents_JMSPrefix_Normalization(t *testing.T) {
 	require.False(t, captured.Timestamp.IsZero(), "Timestamp should be extracted from cloudEvents_time")
 }
 
+func Test_HandleDelivery_AckError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+
+	handler := newWrappedHandler(func(ctx context.Context, event spec.ConsumableEvent[Message]) error {
+		return nil
+	})
+
+	acker := MockAcknowledger{
+		Acks:    make(chan Ack, 1),
+		Nacks:   make(chan Nack, 1),
+		Rejects: make(chan Reject, 1),
+		AckErr:  errors.New("channel closed"),
+	}
+	consumer := queueConsumer{
+		handlers: routingKeyHandler{},
+		logger:   logger,
+		spanNameFn: func(info spec.DeliveryInfo) string {
+			return "span"
+		},
+		notificationCh: make(chan<- spec.Notification, 1),
+	}
+	consumer.handlers.add("Order.Created", handler)
+
+	body, _ := json.Marshal(Message{Ok: true})
+	d := amqp.Delivery{
+		Body:         body,
+		RoutingKey:   "Order.Created",
+		Exchange:     "events.topic.exchange",
+		Acknowledger: &acker,
+	}
+
+	deliveryInfo := spec.DeliveryInfo{
+		Destination: "test-queue",
+		Source:      "events.topic.exchange",
+		Key:         "Order.Created",
+	}
+
+	consumer.handleDelivery(handler, d, deliveryInfo)
+
+	require.Len(t, acker.Acks, 1)
+	require.Contains(t, buf.String(), "failed to ack delivery")
+	require.Contains(t, buf.String(), "channel closed")
+}
+
+func Test_HandleDelivery_NackError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+
+	acker := MockAcknowledger{
+		Acks:    make(chan Ack, 1),
+		Nacks:   make(chan Nack, 1),
+		Rejects: make(chan Reject, 1),
+		NackErr: errors.New("channel closed"),
+	}
+	consumer := queueConsumer{
+		handlers: routingKeyHandler{},
+		logger:   logger,
+		spanNameFn: func(info spec.DeliveryInfo) string {
+			return "span"
+		},
+		errorCh: make(chan<- spec.ErrorNotification, 1),
+	}
+
+	handler := func(ctx context.Context, event unmarshalEvent) error {
+		return fmt.Errorf("handler error")
+	}
+
+	body, _ := json.Marshal(Message{Ok: true})
+	d := amqp.Delivery{
+		Body:         body,
+		RoutingKey:   "Order.Created",
+		Exchange:     "events.topic.exchange",
+		Acknowledger: &acker,
+	}
+
+	deliveryInfo := spec.DeliveryInfo{
+		Destination: "test-queue",
+		Source:      "events.topic.exchange",
+		Key:         "Order.Created",
+	}
+
+	consumer.handleDelivery(handler, d, deliveryInfo)
+
+	require.Len(t, acker.Nacks, 1)
+	require.Contains(t, buf.String(), "failed to nack delivery")
+	require.Contains(t, buf.String(), "channel closed")
+}
+
+func Test_HandleDelivery_RejectError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn}))
+
+	acker := MockAcknowledger{
+		Acks:      make(chan Ack, 1),
+		Nacks:     make(chan Nack, 1),
+		Rejects:   make(chan Reject, 1),
+		RejectErr: errors.New("channel closed"),
+	}
+	consumer := queueConsumer{
+		handlers: routingKeyHandler{},
+		logger:   logger,
+		spanNameFn: func(info spec.DeliveryInfo) string {
+			return "span"
+		},
+		errorCh: make(chan<- spec.ErrorNotification, 1),
+	}
+
+	handler := func(ctx context.Context, event unmarshalEvent) error {
+		return ErrNoMessageTypeForRouteKey
+	}
+
+	body, _ := json.Marshal(Message{Ok: true})
+	d := amqp.Delivery{
+		Body:         body,
+		RoutingKey:   "Order.Created",
+		Exchange:     "events.topic.exchange",
+		Acknowledger: &acker,
+	}
+
+	deliveryInfo := spec.DeliveryInfo{
+		Destination: "test-queue",
+		Source:      "events.topic.exchange",
+		Key:         "Order.Created",
+	}
+
+	consumer.handleDelivery(handler, d, deliveryInfo)
+
+	require.Len(t, acker.Rejects, 1)
+	require.Contains(t, buf.String(), "failed to reject delivery")
+	require.Contains(t, buf.String(), "channel closed")
+}
+
 func delivery(acker MockAcknowledger, routingKey string, success bool) amqp.Delivery {
 	body, _ := json.Marshal(Message{success})
 

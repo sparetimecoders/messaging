@@ -105,21 +105,25 @@ type MockAcknowledger struct {
 	Acks    chan Ack
 	Nacks   chan Nack
 	Rejects chan Reject
+
+	AckErr    error
+	NackErr   error
+	RejectErr error
 }
 
 func (a *MockAcknowledger) Ack(tag uint64, multiple bool) error {
 	a.Acks <- Ack{tag, multiple}
-	return nil
+	return a.AckErr
 }
 
 func (a *MockAcknowledger) Nack(tag uint64, multiple bool, requeue bool) error {
 	a.Nacks <- Nack{tag, multiple, requeue}
-	return nil
+	return a.NackErr
 }
 
 func (a *MockAcknowledger) Reject(tag uint64, requeue bool) error {
 	a.Rejects <- Reject{tag, requeue}
-	return nil
+	return a.RejectErr
 }
 
 type MockAmqpChannel struct {

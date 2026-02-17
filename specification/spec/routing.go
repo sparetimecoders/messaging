@@ -20,35 +20,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package amqp
+package spec
 
 import (
-	"github.com/sparetimecoders/gomessaging/spec"
+	"fmt"
+	"regexp"
+	"strings"
 )
 
-// routingKeyHandler holds the mapping from routing key to a specific handler
-type routingKeyHandler map[string]wrappedHandler
-
-// get returns the handler for the given routing key that matches
-func (h *routingKeyHandler) get(routingKey string) (wrappedHandler, bool) {
-	for mappedRoutingKey, handler := range *h {
-		if spec.MatchRoutingKey(mappedRoutingKey, routingKey) {
-			return handler, true
-		}
+// MatchRoutingKey returns true if routingKey matches the binding pattern.
+// Supports AMQP/NATS wildcard syntax: * matches one word, # matches zero or more.
+func MatchRoutingKey(pattern, routingKey string) bool {
+	b, err := regexp.MatchString(routingKeyToRegex(pattern), routingKey)
+	if err != nil {
+		return false
 	}
-	return nil, false
+	return b
 }
 
-// exists returns the already mapped routing key if it exists (matched by the overlaps function to support wildcards)
-func (h *routingKeyHandler) exists(routingKey string) (string, bool) {
-	for mappedRoutingKey := range *h {
-		if spec.RoutingKeyOverlaps(routingKey, mappedRoutingKey) {
-			return mappedRoutingKey, true
-		}
+// RoutingKeyOverlaps returns true if two binding patterns could match the same routing key.
+func RoutingKeyOverlaps(p1, p2 string) bool {
+	if p1 == p2 {
+		return true
+	} else if MatchRoutingKey(p1, p2) {
+		return true
+	} else if MatchRoutingKey(p2, p1) {
+		return true
 	}
-	return "", false
+	return false
 }
 
-func (h *routingKeyHandler) add(routingKey string, handler wrappedHandler) {
-	(*h)[routingKey] = handler
+// routingKeyToRegex converts an AMQP/NATS binding pattern to a regular expression.
+// For example:
+//
+//	user.* => user\.[^.]*
+//	user.# => user\..*
+func routingKeyToRegex(s string) string {
+	replace := strings.Replace(strings.Replace(strings.Replace(s, ".", "\\.", -1), "*", "[^.]*", -1), "#", ".*", -1)
+	return fmt.Sprintf("^%s$", replace)
 }

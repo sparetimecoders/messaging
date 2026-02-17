@@ -46,34 +46,24 @@ NATS now provides `WithMaxDeliver(n)` and `WithBackOff(durations)` per-consumer 
 
 ## LOW Priority
 
-### Ack/Nack Error Return Values Silently Ignored
+### ~~Ack/Nack Error Return Values Silently Ignored~~ (RESOLVED)
 
-**Current behavior:** `delivery.Ack()` and `delivery.Nack()` errors are not checked in the AMQP consumer loop.
+**Resolved:** All 5 call sites in `amqp/consumer.go` (`Ack`, `Nack`, `Reject`) now check the returned error and log at Warn level using the existing `c.log()` slog pattern. Control flow is unchanged — a failed ack/nack indicates the channel is likely dead and the consumer loop will exit on the next iteration. See `amqp/consumer.go`.
 
-**Recommendation:** Log ack/nack failures at warning level.
+### ~~NATS Request Timeout Hardcoded~~ (RESOLVED)
 
-### NATS Request Timeout Hardcoded
+**Resolved:** `WithRequestTimeout(duration)` setup option configures the timeout for NATS Core request-reply operations. Default remains 30 seconds. The `ServicePublisher` reads from the connection's `requestTimeout` field. See `nats/setup.go` and `nats/setup_publisher.go`.
 
-**Current behavior:** Request-reply timeout is hardcoded to 30 seconds.
+### ~~API Inconsistencies Between amqp/ and nats/~~ (RESOLVED — No Code Changes)
 
-**Recommendation:** Make configurable via `WithRequestTimeout(duration)` option.
+**Resolved:** These are transport-specific features that don't need alignment:
+- `CloseListener` — AMQP-specific (fail-fast on connection drop); NATS handles reconnection internally via `natsgo.Conn` drain.
+- `SkipQueueDeclare` / `WithPrefetchLimit` — AMQP-only concepts with no NATS equivalent.
+- `AddQueueNameSuffix` vs `AddConsumerNameSuffix` — already semantically aligned; different names reflect transport semantics (queues vs consumers).
 
-### API Inconsistencies Between amqp/ and nats/
+### ~~Code Duplication in routingkey_handlers~~ (RESOLVED)
 
-| Feature | amqp/ | nats/ |
-|---------|-------|-------|
-| Close listener | `CloseListener(chan error)` | Not available |
-| Queue name suffix | `AddQueueNameSuffix(string)` | Not available |
-| Skip queue declare | `SkipQueueDeclare()` | Not applicable |
-| Prefetch limit | `WithPrefetchLimit(int)` | Not applicable |
-
-**Recommendation:** Align APIs where semantically equivalent. Document transport-specific options clearly.
-
-### Code Duplication in routingkey_handlers
-
-**Current behavior:** `amqp/routingkey_handlers.go` and `nats/routingkey_handlers.go` contain near-identical pattern matching logic.
-
-**Recommendation:** Extract shared matching logic to `spec/` module (e.g., `spec.MatchRoutingKey(pattern, key) bool`).
+**Resolved:** Shared routing key matching logic extracted to `spec/routing.go` as `spec.MatchRoutingKey(pattern, key)` and `spec.RoutingKeyOverlaps(p1, p2)`. Both `amqp/routingkey_handlers.go` and `nats/routingkey_handlers.go` now import from `spec/` instead of duplicating `match()` and `fixRegex()` functions.
 
 ## Spec Gaps
 

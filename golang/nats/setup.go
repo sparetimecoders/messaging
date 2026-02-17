@@ -152,3 +152,15 @@ func WithErrorChannel(ch chan<- spec.ErrorNotification) Setup {
 		return nil
 	}
 }
+
+// WithRequestTimeout sets the timeout for NATS Core request-reply operations.
+// Default is 30 seconds.
+func WithRequestTimeout(d time.Duration) Setup {
+	return func(conn *Connection) error {
+		if d <= 0 {
+			return fmt.Errorf("request timeout must be positive, got %s", d)
+		}
+		conn.requestTimeout = d
+		return nil
+	}
+}

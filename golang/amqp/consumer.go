@@ -79,7 +79,9 @@ func (c *queueConsumer) loop(deliveries <-chan amqp.Delivery) {
 				"exchange", deliveryInfo.Source,
 			)
 			eventWithoutHandler(c.queue, deliveryInfo.Key)
-			_ = delivery.Reject(false)
+			if err := delivery.Reject(false); err != nil {
+				c.log().Warn("failed to reject delivery", "routingKey", deliveryInfo.Key, "error", err)
+			}
 			continue
 		}
 		c.handleDelivery(handler, delivery, deliveryInfo)
@@ -142,14 +144,18 @@ func (c *queueConsumer) handleDelivery(handler wrappedHandler, delivery amqp.Del
 				"error", err,
 			)
 			eventNotParsable(deliveryInfo.Destination, deliveryInfo.Key)
-			_ = delivery.Nack(false, false)
+			if err := delivery.Nack(false, false); err != nil {
+				c.log().Warn("failed to nack delivery", "routingKey", deliveryInfo.Key, "error", err)
+			}
 		} else if errors.Is(err, ErrNoMessageTypeForRouteKey) {
 			c.log().Warn("no type mapping for routing key, rejecting",
 				"routingKey", deliveryInfo.Key,
 				"exchange", deliveryInfo.Source,
 			)
 			eventWithoutHandler(deliveryInfo.Destination, deliveryInfo.Key)
-			_ = delivery.Reject(false)
+			if err := delivery.Reject(false); err != nil {
+				c.log().Warn("failed to reject delivery", "routingKey", deliveryInfo.Key, "error", err)
+			}
 		} else {
 			c.log().Error("handler failed, nacking with requeue",
 				"routingKey", deliveryInfo.Key,
@@ -158,7 +164,9 @@ func (c *queueConsumer) handleDelivery(handler wrappedHandler, delivery amqp.Del
 				"durationMs", elapsed,
 			)
 			eventNack(deliveryInfo.Destination, deliveryInfo.Key, elapsed)
-			_ = delivery.Nack(false, true)
+			if err := delivery.Nack(false, true); err != nil {
+				c.log().Warn("failed to nack delivery", "routingKey", deliveryInfo.Key, "error", err)
+			}
 		}
 		return
 	}
@@ -166,7 +174,9 @@ func (c *queueConsumer) handleDelivery(handler wrappedHandler, delivery amqp.Del
 	elapsed := time.Since(startTime).Milliseconds()
 	span.SetStatus(codes.Ok, "")
 	notifyEventHandlerSucceed(c.notificationCh, deliveryInfo, elapsed)
-	_ = delivery.Ack(false)
+	if err := delivery.Ack(false); err != nil {
+		c.log().Warn("failed to ack delivery", "routingKey", deliveryInfo.Key, "error", err)
+	}
 	eventAck(deliveryInfo.Destination, deliveryInfo.Key, elapsed)
 	c.log().Debug("message processed",
 		"routingKey", deliveryInfo.Key,

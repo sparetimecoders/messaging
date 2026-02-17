@@ -28,6 +28,7 @@ import (
 	"log/slog"
 	"reflect"
 	"runtime"
+	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -66,6 +67,8 @@ type Connection struct {
 	streamDefaults   StreamConfig            // connection-level defaults
 	streamConfigs    map[string]StreamConfig // per-stream overrides
 	consumerDefaults ConsumerDefaults        // connection-level consumer defaults
+
+	requestTimeout time.Duration // default 30s for NATS Core request-reply
 
 	// collectMode disables actual NATS operations for topology collection.
 	collectMode bool
