@@ -249,6 +249,24 @@ func (c *Connection) startPendingJSConsumers(ctx context.Context) error {
 			jsCfg.FilterSubjects = filterSubjects
 		}
 
+		// Apply MaxDeliver: per-consumer override > connection default.
+		maxDeliver := c.consumerDefaults.MaxDeliver
+		if first.maxDeliver > 0 {
+			maxDeliver = first.maxDeliver
+		}
+		if maxDeliver > 0 {
+			jsCfg.MaxDeliver = maxDeliver
+		}
+
+		// Apply BackOff: per-consumer override > connection default.
+		backOff := c.consumerDefaults.BackOff
+		if first.backOff != nil {
+			backOff = first.backOff
+		}
+		if len(backOff) > 0 {
+			jsCfg.BackOff = backOff
+		}
+
 		cons, err := stream.CreateOrUpdateConsumer(ctx, jsCfg)
 		if err != nil {
 			return fmt.Errorf("failed to create consumer on stream %s: %w", first.stream, err)

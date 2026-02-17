@@ -47,6 +47,27 @@ type StreamConfig struct {
 	MaxMsgs int64
 }
 
+// ConsumerDefaults configures default JetStream consumer behavior.
+type ConsumerDefaults struct {
+	// MaxDeliver is the maximum number of delivery attempts.
+	// Zero means unlimited (NATS default).
+	MaxDeliver int
+
+	// BackOff specifies redelivery backoff durations.
+	// The server waits BackOff[min(attempt, len-1)] before redelivering.
+	BackOff []time.Duration
+}
+
+// WithConsumerDefaults sets default MaxDeliver and BackOff applied to all
+// JetStream consumers. Per-consumer options (WithMaxDeliver, WithBackOff)
+// take precedence.
+func WithConsumerDefaults(cfg ConsumerDefaults) Setup {
+	return func(conn *Connection) error {
+		conn.consumerDefaults = cfg
+		return nil
+	}
+}
+
 // WithStreamDefaults sets default retention limits applied to all streams
 // created by this connection. Per-stream overrides take precedence.
 func WithStreamDefaults(cfg StreamConfig) Setup {

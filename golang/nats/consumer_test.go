@@ -345,3 +345,31 @@ func TestAddConsumerNameSuffixEmpty(t *testing.T) {
 	err := AddConsumerNameSuffix("")(cfg)
 	assert.ErrorIs(t, err, ErrEmptySuffix)
 }
+
+func TestWithMaxDeliver(t *testing.T) {
+	cfg := &consumerConfig{}
+	err := WithMaxDeliver(5)(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, 5, cfg.maxDeliver)
+}
+
+func TestWithMaxDeliver_Zero(t *testing.T) {
+	cfg := &consumerConfig{}
+	err := WithMaxDeliver(0)(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, 0, cfg.maxDeliver)
+}
+
+func TestWithMaxDeliver_Negative(t *testing.T) {
+	cfg := &consumerConfig{}
+	err := WithMaxDeliver(-1)(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MaxDeliver must be >= 0")
+}
+
+func TestWithBackOff(t *testing.T) {
+	cfg := &consumerConfig{}
+	err := WithBackOff(100*time.Millisecond, 500*time.Millisecond, 2*time.Second)(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, []time.Duration{100 * time.Millisecond, 500 * time.Millisecond, 2 * time.Second}, cfg.backOff)
+}

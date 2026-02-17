@@ -4,53 +4,33 @@ Identified during the gomessaging team review (2026-02-12).
 
 ## HIGH Priority
 
-### No Dead Letter / Poison Message Handling
+### ~~No Dead Letter / Poison Message Handling~~ (RESOLVED)
 
-**Current behavior:** AMQP uses `Nack(requeue=true)` and NATS uses bare `Nak()`, which can create infinite retry loops for unprocessable messages.
+**Resolved:** AMQP now provides `WithDeadLetter(exchange)` and `WithDeadLetterRoutingKey(key)` consumer options that set `x-dead-letter-exchange` and `x-dead-letter-routing-key` queue arguments. The user manages DLX infrastructure (exchange + dead letter queue). RabbitMQ 4.0 quorum queues enforce `delivery-limit: 20` by default, routing to DLX if configured. See `amqp/queue_binding_config.go`.
 
-**Risk:** RabbitMQ 4.0 defaults `delivery-limit` to 20 — without a DLX configured, messages are silently dropped at the limit. NATS has no retry limit at all without `MaxDeliver`.
+NATS now provides `WithMaxDeliver(n)` and `WithBackOff(durations)` per-consumer options, plus `WithConsumerDefaults(cfg)` for connection-level defaults. After MaxDeliver attempts, the server terminates the message. See `nats/consumer.go` and `nats/setup.go`.
 
-**Recommendation:** Configure dead letter exchanges (AMQP) and max delivery limits (NATS). Add a `WithDeadLetter` setup option. Consider a `WithMaxRetries(n)` option that works across both transports.
+### ~~AMQP Publisher Confirms Not Default~~ (RESOLVED)
 
-### AMQP Publisher Confirms Not Default
+**Resolved:** Publisher confirms are now enabled by default. `Publish()` waits for broker confirmation and returns error on nack. Use `WithoutPublisherConfirms()` to opt out for high-throughput scenarios. The existing `WithConfirm(ch)` option still works for custom confirm channel usage. See `amqp/setup_publisher.go`.
 
-**Current behavior:** Messages are published without waiting for broker confirmation. The `PublishNotify` setup exists but is opt-in.
+### ~~NATS Consumer Config Missing MaxDeliver/BackOff~~ (RESOLVED)
 
-**Risk:** Messages can be silently lost if the broker doesn't persist them (e.g., during failover).
-
-**Recommendation:** Enable publisher confirms by default. Add a `WithoutPublisherConfirms()` opt-out for high-throughput scenarios where loss is acceptable.
-
-### NATS Consumer Config Missing MaxDeliver/BackOff
-
-**Current behavior:** JetStream consumers are created without `MaxDeliver` or `BackOff` configuration.
-
-**Risk:** Failed messages are redelivered indefinitely with no backoff, causing tight retry loops that can overwhelm downstream services.
-
-**Recommendation:** Set sensible defaults (e.g., `MaxDeliver: 10`, exponential `BackOff`). Add `WithMaxDeliver(n)` and `WithBackOff(durations)` consumer options.
+**Resolved:** `WithMaxDeliver(n)` and `WithBackOff(durations)` consumer options configure JetStream consumer delivery limits and backoff. `WithConsumerDefaults(cfg)` sets connection-level defaults; per-consumer options take precedence. See `nats/consumer.go`, `nats/setup.go`, and `nats/setup_consumer.go`.
 
 ## MEDIUM Priority
 
-### AMQP Publish Channel Not Goroutine-Safe
+### ~~AMQP Publish Channel Not Goroutine-Safe~~ (RESOLVED)
 
-**Current behavior:** A single `publishChannel` is shared across all goroutines. The underlying `amqp091-go` channel is not safe for concurrent use.
+**Resolved:** Each publisher now gets its own dedicated AMQP channel, eliminating the goroutine safety issue. See per-publisher channel allocation in `amqp/setup_publisher.go`.
 
-**Recommendation:** Use a channel pool or mutex-protected publish, or document that callers must synchronize access.
+### ~~NATS Streams Have No Retention Limits~~ (RESOLVED)
 
-### NATS Streams Have No Retention Limits
+**Resolved:** `WithStreamDefaults` applies sensible retention limits (MaxAge 7d, MaxBytes 1GB, MaxMsgs 1M) and `WithStreamConfig` allows full custom configuration. See `nats/stream_options.go`.
 
-**Current behavior:** JetStream streams are created without `MaxAge`, `MaxBytes`, or `MaxMsgs` limits.
+### ~~Prometheus Metrics High Cardinality Risk~~ (RESOLVED)
 
-**Risk:** Unbounded storage growth on the NATS server.
-
-**Recommendation:** Add configurable retention defaults (e.g., `MaxAge: 7d`, `MaxBytes: 1GB`). Expose via `WithStreamRetention()` setup option.
-
-### Prometheus Metrics High Cardinality Risk
-
-**Current behavior:** Metrics include `routing_key` as a label (both AMQP and NATS).
-
-**Risk:** High-cardinality routing keys (e.g., entity IDs in keys) can cause metric explosion and OOM in Prometheus.
-
-**Recommendation:** Replace `routing_key` with a bounded label (e.g., pattern or message type). Or add a configurable label mapper function.
+**Resolved:** `WithRoutingKeyMapper` option on `InitMetrics` allows normalizing or redacting dynamic segments from routing keys before they become Prometheus label values. Default is identity (pass-through). See `amqp/metrics.go` and `nats/metrics.go`.
 
 ### ~~CloudEvents Header Prefix Convention~~ (RESOLVED)
 

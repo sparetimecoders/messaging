@@ -160,11 +160,9 @@ func eventPublishSucceed(stream string, routingKey string, milliseconds int64) {
 }
 ```
 
-**Step 4b — Rename label name** (separate follow-up, out of scope):
+**Step 4b — Rename label name** (DONE):
 
-Renaming `metricSubject` → `metricRoutingKey` on the 3 NATS publisher metric vectors is deferred to a separate PR. This lets users migrate dashboard label values first (`events.Order.Created` → `Order.Created`), then update label names (`subject` → `routing_key`) in a subsequent deploy.
-
-Document the planned rename in the migration notes so users know it's coming.
+The `metricSubject` constant has been removed and all 3 NATS publisher metric vectors (`nats_events_publish_succeed`, `nats_events_publish_failed`, `nats_events_publish_duration`) now use `metricRoutingKey` (`routing_key`) as the label name, consistent with consumer metrics and AMQP.
 
 ### Step 5: Add tests
 
@@ -264,9 +262,9 @@ No other breaking changes. AMQP metrics and NATS consumer metrics keep identical
 3. Label **name** stays `subject` in this PR — no PromQL key changes needed yet
 4. After deploy, verify NATS publisher metrics appear with the shorter routing key values
 
-**Planned follow-up (separate PR):**
-1. Label name `subject` → `routing_key` on NATS publisher metrics
-2. At that point, update PromQL from `{subject="Order.Created"}` to `{routing_key="Order.Created"}`
+**Completed follow-up:**
+1. ~~Label name `subject` → `routing_key` on NATS publisher metrics~~ — done
+2. PromQL queries should now use `{routing_key="Order.Created"}` instead of `{subject="..."}`
 
 ## Thread Safety
 

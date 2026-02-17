@@ -129,3 +129,14 @@ func TestWithStreamConfig_EmptyStreamName(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "stream name must not be empty")
 }
+
+func TestWithConsumerDefaults(t *testing.T) {
+	conn := newConnection("test-svc", "nats://localhost:4222")
+	err := WithConsumerDefaults(ConsumerDefaults{
+		MaxDeliver: 5,
+		BackOff:    []time.Duration{100 * time.Millisecond, 500 * time.Millisecond},
+	})(conn)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, conn.consumerDefaults.MaxDeliver)
+	assert.Equal(t, []time.Duration{100 * time.Millisecond, 500 * time.Millisecond}, conn.consumerDefaults.BackOff)
+}

@@ -86,6 +86,27 @@ func DisableSingleActiveConsumer() ConsumerOptions {
 	}
 }
 
+// WithDeadLetter configures the queue to route rejected/expired messages
+// to the named dead letter exchange. The exchange must already exist.
+func WithDeadLetter(exchange string) ConsumerOptions {
+	return func(config *consumerConfig) error {
+		if exchange == "" {
+			return fmt.Errorf("dead letter exchange must not be empty")
+		}
+		config.queueHeaders["x-dead-letter-exchange"] = exchange
+		return nil
+	}
+}
+
+// WithDeadLetterRoutingKey sets a custom routing key for dead-lettered messages.
+// If not set, the original routing key is preserved.
+func WithDeadLetterRoutingKey(key string) ConsumerOptions {
+	return func(config *consumerConfig) error {
+		config.queueHeaders["x-dead-letter-routing-key"] = key
+		return nil
+	}
+}
+
 // getQueueBindingConfigSetupFuncName returns the name of the ConsumerOptions function
 func getQueueBindingConfigSetupFuncName(f ConsumerOptions) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()

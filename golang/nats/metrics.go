@@ -67,7 +67,6 @@ func routingKeyLabel(key string) string {
 const (
 	metricConsumer   = "consumer"
 	metricStream     = "stream"
-	metricSubject    = "subject"
 	metricResult     = "result"
 	metricRoutingKey = "routing_key"
 )
@@ -120,14 +119,14 @@ var (
 		prometheus.CounterOpts{
 			Name: "nats_events_publish_succeed",
 			Help: "Count of NATS events published successfully",
-		}, []string{metricStream, metricSubject},
+		}, []string{metricStream, metricRoutingKey},
 	)
 
 	eventPublishFailedCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nats_events_publish_failed",
 			Help: "Count of NATS events that could not be published",
-		}, []string{metricStream, metricSubject},
+		}, []string{metricStream, metricRoutingKey},
 	)
 
 	eventPublishDuration = prometheus.NewHistogramVec(
@@ -135,7 +134,7 @@ var (
 			Name:    "nats_events_publish_duration",
 			Help:    "Milliseconds taken to publish an event",
 			Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000},
-		}, []string{metricStream, metricSubject, metricResult},
+		}, []string{metricStream, metricRoutingKey, metricResult},
 	)
 )
 

@@ -47,6 +47,7 @@ type Publisher struct {
 	propagator     propagation.TextMapPropagator
 	spanNameFn     func(exchange, routingKey string) string
 	confirmCh      chan amqp.Confirmation // nil = no confirms
+	noConfirm      bool                  // true = skip confirm setup
 }
 
 // PublisherOption is a functional option for NewPublisher.
@@ -57,6 +58,16 @@ type PublisherOption func(*Publisher)
 func WithConfirm(ch chan amqp.Confirmation) PublisherOption {
 	return func(p *Publisher) {
 		p.confirmCh = ch
+	}
+}
+
+// WithoutPublisherConfirms disables publisher confirms for this publisher.
+// By default, Publish() waits for broker confirmation and returns error on nack.
+// Use this opt-out for high-throughput scenarios where occasional message loss
+// is acceptable.
+func WithoutPublisherConfirms() PublisherOption {
+	return func(p *Publisher) {
+		p.noConfirm = true
 	}
 }
 
@@ -78,6 +89,8 @@ func NewPublisher(opts ...PublisherOption) *Publisher {
 
 // Publish sends msg as a JSON-encoded AMQP message with the given routing key.
 // Additional headers can be provided to attach metadata to the message.
+// By default, Publish waits for broker confirmation and returns an error if the
+// broker nacks. Use WithoutPublisherConfirms to disable this behavior.
 func (p *Publisher) Publish(ctx context.Context, routingKey string, msg any, headers ...Header) error {
 	table := amqp.Table{}
 	for _, v := range p.defaultHeaders {
@@ -90,7 +103,21 @@ func (p *Publisher) Publish(ctx context.Context, routingKey string, msg any, hea
 		table[h.Key] = h.Value
 	}
 
-	return publishMessage(ctx, p.tracer, p.propagator, p.spanNameFn, p.channel, msg, routingKey, p.exchange, p.serviceName, table)
+	err := publishMessage(ctx, p.tracer, p.propagator, p.spanNameFn, p.channel, msg, routingKey, p.exchange, p.serviceName, table)
+	if err != nil {
+		return err
+	}
+	if p.confirmCh != nil {
+		select {
+		case confirm := <-p.confirmCh:
+			if !confirm.Ack {
+				return fmt.Errorf("broker nacked publish to %s/%s", p.exchange, routingKey)
+			}
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled waiting for publish confirm: %w", ctx.Err())
+		}
+	}
+	return nil
 }
 
 // EventStreamPublisher sets up an event stream publisher
@@ -178,7 +205,10 @@ func (p *Publisher) setup(channel amqpChannel, serviceName, exchange string, tra
 	p.tracer = tracer
 	p.propagator = prop
 	p.spanNameFn = spanNameFn
-	if p.confirmCh != nil {
+	if !p.noConfirm {
+		if p.confirmCh == nil {
+			p.confirmCh = make(chan amqp.Confirmation, 1)
+		}
 		channel.NotifyPublish(p.confirmCh)
 		if err := channel.Confirm(false); err != nil {
 			return fmt.Errorf("failed to enable confirm mode: %w", err)

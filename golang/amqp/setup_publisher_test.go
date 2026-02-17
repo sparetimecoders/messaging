@@ -356,6 +356,84 @@ func Test_Publisher_WithConfirm(t *testing.T) {
 	require.Equal(t, &confirmCh, channel.Confirms, "confirm channel should match")
 }
 
+func Test_Publisher_DefaultConfirmsEnabled(t *testing.T) {
+	channel := NewMockAmqpChannel()
+	conn := mockConnection(channel)
+	p := NewPublisher()
+	err := conn.Start(context.Background(), EventStreamPublisher(p))
+	require.NoError(t, err)
+
+	require.True(t, channel.ConfirmCalled, "Confirm() should be called by default")
+	require.NotNil(t, channel.Confirms, "NotifyPublish() should be called by default")
+}
+
+func Test_Publisher_WithoutPublisherConfirms(t *testing.T) {
+	channel := NewMockAmqpChannel()
+	conn := mockConnection(channel)
+	p := NewPublisher(WithoutPublisherConfirms())
+	err := conn.Start(context.Background(), EventStreamPublisher(p))
+	require.NoError(t, err)
+
+	require.False(t, channel.ConfirmCalled, "Confirm() should not be called when confirms are disabled")
+	require.Nil(t, channel.Confirms, "NotifyPublish() should not be called when confirms are disabled")
+}
+
+func Test_Publisher_ConfirmAck(t *testing.T) {
+	channel := NewMockAmqpChannel()
+	conn := mockConnection(channel)
+	p := NewPublisher()
+	err := conn.Start(context.Background(), EventStreamPublisher(p))
+	require.NoError(t, err)
+
+	// Mock sends ack automatically in PublishWithContext
+	err = p.Publish(context.Background(), "Order.Created", TestMessage{Msg: "test"})
+	require.NoError(t, err)
+}
+
+func Test_Publisher_ConfirmNack(t *testing.T) {
+	channel := NewMockAmqpChannel()
+	// Override publishFn to send nack instead of ack
+	channel.publishFn = func(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+		channel.Published <- Publish{exchange, key, mandatory, immediate, msg}
+		if channel.Confirms != nil {
+			*channel.Confirms <- amqp.Confirmation{
+				DeliveryTag: 1,
+				Ack:         false,
+			}
+		}
+		return nil
+	}
+	conn := mockConnection(channel)
+	p := NewPublisher()
+	err := conn.Start(context.Background(), EventStreamPublisher(p))
+	require.NoError(t, err)
+
+	err = p.Publish(context.Background(), "Order.Created", TestMessage{Msg: "test"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "broker nacked publish")
+}
+
+func Test_Publisher_ConfirmContextCancelled(t *testing.T) {
+	channel := NewMockAmqpChannel()
+	// Override publishFn to NOT send any confirmation
+	channel.publishFn = func(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+		channel.Published <- Publish{exchange, key, mandatory, immediate, msg}
+		// Do not send confirmation — simulate a timeout
+		return nil
+	}
+	conn := mockConnection(channel)
+	p := NewPublisher()
+	err := conn.Start(context.Background(), EventStreamPublisher(p))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	err = p.Publish(ctx, "Order.Created", TestMessage{Msg: "test"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "context cancelled waiting for publish confirm")
+}
+
 func Test_PublishServiceResponse_UsesResponseChannel(t *testing.T) {
 	// Create distinct mock channels for response vs publisher
 	responseChannel := NewMockAmqpChannel()

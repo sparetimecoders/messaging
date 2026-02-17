@@ -32,6 +32,7 @@ import (
 	"time"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/sparetimecoders/gomessaging/spec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -301,6 +302,131 @@ func TestTypeMappingHandler_UnknownRoutingKey(t *testing.T) {
 	}
 	err := handler(context.Background(), evt)
 	assert.ErrorIs(t, err, ErrNoMessageTypeForRouteKey)
+}
+
+func TestConsumerWithMaxDeliver(t *testing.T) {
+	s := startTestServer(t)
+	url := serverURL(s)
+
+	var (
+		mu        sync.Mutex
+		delivered int
+	)
+
+	handler := func(ctx context.Context, event spec.ConsumableEvent[testMessage]) error {
+		mu.Lock()
+		defer mu.Unlock()
+		delivered++
+		return fmt.Errorf("always fail")
+	}
+
+	pub := NewPublisher()
+	conn, err := NewConnection("maxdeliver-svc", url)
+	require.NoError(t, err)
+
+	err = conn.Start(context.Background(),
+		EventStreamPublisher(pub),
+		EventStreamConsumer("Order.Created", handler, WithMaxDeliver(3)),
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	err = pub.Publish(context.Background(), "Order.Created", testMessage{Name: "test", Value: 1})
+	require.NoError(t, err)
+
+	// Wait for deliveries to stop — should be exactly 3
+	assert.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return delivered >= 3
+	}, 5*time.Second, 50*time.Millisecond)
+
+	// Give a small window to ensure no more deliveries happen
+	time.Sleep(500 * time.Millisecond)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 3, delivered, "message should be delivered exactly MaxDeliver times")
+}
+
+func TestConsumerWithBackOff(t *testing.T) {
+	s := startTestServer(t)
+	url := serverURL(s)
+
+	handler := func(ctx context.Context, event spec.ConsumableEvent[testMessage]) error {
+		return nil
+	}
+
+	pub := NewPublisher()
+	conn, err := NewConnection("backoff-svc", url)
+	require.NoError(t, err)
+
+	err = conn.Start(context.Background(),
+		EventStreamPublisher(pub),
+		EventStreamConsumer("Order.Created", handler,
+			WithMaxDeliver(5),
+			WithBackOff(200*time.Millisecond, 500*time.Millisecond),
+		),
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Verify the consumer config was applied by reading it back from JetStream
+	nc, err := natsgo.Connect(url)
+	require.NoError(t, err)
+	defer nc.Close()
+
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+
+	cons, err := js.Consumer(context.Background(), "events", consumerName("backoff-svc"))
+	require.NoError(t, err)
+
+	info := cons.CachedInfo()
+	assert.Equal(t, 5, info.Config.MaxDeliver)
+	assert.Equal(t, []time.Duration{200 * time.Millisecond, 500 * time.Millisecond}, info.Config.BackOff)
+}
+
+func TestConsumerDefaultsMaxDeliver(t *testing.T) {
+	s := startTestServer(t)
+	url := serverURL(s)
+
+	var (
+		mu        sync.Mutex
+		delivered int
+	)
+
+	handler := func(ctx context.Context, event spec.ConsumableEvent[testMessage]) error {
+		mu.Lock()
+		defer mu.Unlock()
+		delivered++
+		return fmt.Errorf("always fail")
+	}
+
+	pub := NewPublisher()
+	conn, err := NewConnection("defaults-svc", url)
+	require.NoError(t, err)
+
+	err = conn.Start(context.Background(),
+		WithConsumerDefaults(ConsumerDefaults{MaxDeliver: 2}),
+		EventStreamPublisher(pub),
+		EventStreamConsumer("Order.Created", handler),
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	err = pub.Publish(context.Background(), "Order.Created", testMessage{Name: "test", Value: 1})
+	require.NoError(t, err)
+
+	assert.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return delivered >= 2
+	}, 5*time.Second, 50*time.Millisecond)
+
+	time.Sleep(500 * time.Millisecond)
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 2, delivered, "connection-level MaxDeliver should limit deliveries")
 }
 
 func TestTypeMappingHandler(t *testing.T) {

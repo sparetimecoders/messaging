@@ -63,8 +63,9 @@ type Connection struct {
 	// They are grouped and started after all setup functions have run.
 	pendingJSConsumers []*consumerConfig
 
-	streamDefaults StreamConfig            // connection-level defaults
-	streamConfigs  map[string]StreamConfig // per-stream overrides
+	streamDefaults   StreamConfig            // connection-level defaults
+	streamConfigs    map[string]StreamConfig // per-stream overrides
+	consumerDefaults ConsumerDefaults        // connection-level consumer defaults
 
 	// collectMode disables actual NATS operations for topology collection.
 	collectMode bool

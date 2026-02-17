@@ -134,7 +134,7 @@ func TestInitMetrics_PublisherUsesRoutingKeyValue(t *testing.T) {
 		if f.GetName() == "nats_events_publish_succeed" {
 			for _, m := range f.GetMetric() {
 				for _, lp := range m.GetLabel() {
-					if *lp.Name == "subject" {
+					if *lp.Name == "routing_key" {
 						assert.Equal(t, "Order.Created", *lp.Value)
 						found = true
 					}
@@ -142,7 +142,7 @@ func TestInitMetrics_PublisherUsesRoutingKeyValue(t *testing.T) {
 			}
 		}
 	}
-	assert.True(t, found, "subject label not found in gathered metrics")
+	assert.True(t, found, "routing_key label not found in gathered metrics")
 }
 
 func TestInitMetrics_EmptyMapperReturnsFallback(t *testing.T) {

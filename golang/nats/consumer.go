@@ -40,12 +40,14 @@ import (
 
 // consumerConfig configures a JetStream or Core NATS consumer.
 type consumerConfig struct {
-	stream      string
-	routingKey  string
+	stream       string
+	routingKey   string
 	consumerName string
-	ephemeral   bool
-	handler     wrappedHandler
-	suffix      string
+	ephemeral    bool
+	handler      wrappedHandler
+	suffix       string
+	maxDeliver   int             // 0 = use connection default
+	backOff      []time.Duration // nil = use connection default
 }
 
 // ConsumerOptions is a setup function for consumer configuration.
@@ -58,6 +60,29 @@ func AddConsumerNameSuffix(suffix string) ConsumerOptions {
 			return ErrEmptySuffix
 		}
 		config.suffix = suffix
+		return nil
+	}
+}
+
+// WithMaxDeliver sets the maximum number of delivery attempts for this consumer.
+// After max deliveries, the message is terminated by the server.
+// Zero means use the connection-level default (see WithConsumerDefaults).
+func WithMaxDeliver(n int) ConsumerOptions {
+	return func(config *consumerConfig) error {
+		if n < 0 {
+			return fmt.Errorf("MaxDeliver must be >= 0, got %d", n)
+		}
+		config.maxDeliver = n
+		return nil
+	}
+}
+
+// WithBackOff sets redelivery backoff durations for this consumer.
+// The server applies these delays between redelivery attempts.
+// Requires MaxDeliver >= len(durations).
+func WithBackOff(durations ...time.Duration) ConsumerOptions {
+	return func(config *consumerConfig) error {
+		config.backOff = durations
 		return nil
 	}
 }
@@ -194,7 +219,7 @@ func (c *jsConsumer) handleDelivery(handler wrappedHandler, msg jetstream.Msg, r
 			eventWithoutHandler(c.name, routingKey)
 			_ = msg.Term()
 		} else {
-			c.log().Error("handler failed, naking with delay",
+			c.log().Error("handler failed, naking for redelivery",
 				"routingKey", routingKey,
 				"stream", c.stream,
 				"error", err,

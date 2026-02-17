@@ -46,3 +46,30 @@ func TestDisableSingleActiveConsumer(t *testing.T) {
 	require.NoError(t, DisableSingleActiveConsumer()(cfg))
 	require.Equal(t, false, cfg.queueHeaders[amqp.SingleActiveConsumerArg])
 }
+
+func TestWithDeadLetter(t *testing.T) {
+	cfg := &consumerConfig{
+		queueHeaders: amqp.Table{},
+	}
+	require.NoError(t, WithDeadLetter("my-dlx")(cfg))
+	require.Equal(t, "my-dlx", cfg.queueHeaders["x-dead-letter-exchange"])
+}
+
+func TestWithDeadLetterRoutingKey(t *testing.T) {
+	cfg := &consumerConfig{
+		queueHeaders: amqp.Table{},
+	}
+	require.NoError(t, WithDeadLetter("my-dlx")(cfg))
+	require.NoError(t, WithDeadLetterRoutingKey("dead-letter-key")(cfg))
+	require.Equal(t, "my-dlx", cfg.queueHeaders["x-dead-letter-exchange"])
+	require.Equal(t, "dead-letter-key", cfg.queueHeaders["x-dead-letter-routing-key"])
+}
+
+func TestWithDeadLetter_EmptyExchange(t *testing.T) {
+	cfg := &consumerConfig{
+		queueHeaders: amqp.Table{},
+	}
+	err := WithDeadLetter("")(cfg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "dead letter exchange must not be empty")
+}
