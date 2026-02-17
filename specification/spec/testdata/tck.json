@@ -54,6 +54,32 @@
             {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"test-123","amount":42}}
           ]
         }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "orders",
+          "routingKey": "Probe.Outbound",
+          "payload": {"probeId":"out-1"},
+          "rawTarget": {
+            "nats": {"stream":"events","subject":"events.Probe.Outbound"},
+            "amqp": {"exchange":"events.topic.exchange","routingKey":"Probe.Outbound"}
+          },
+          "ceAttributes": {"type":"Probe.Outbound","source":"orders","specversion":"1.0"},
+          "payloadMatch": {"probeId":"out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "notifications",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"in-1","_tckInjected":true},
+          "rawTarget": {
+            "nats": {"subject":"events.Order.Created"},
+            "amqp": {"exchange":"events.topic.exchange","routingKey":"Order.Created"}
+          },
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"in-1","_tckInjected":true}
+        }
       ]
     },
     {
@@ -174,6 +200,32 @@
           "expectedDeliveries": [
             {"to":"analytics","metadata":{"type":"Audit.Entry","source":"analytics","specVersion":"1.0"},"payloadMatch":{"action":"login","userId":"user-456"}}
           ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "analytics",
+          "routingKey": "Probe.AuditOut",
+          "payload": {"probeId":"audit-out-1"},
+          "rawTarget": {
+            "nats": {"stream":"audit","subject":"audit.Probe.AuditOut"},
+            "amqp": {"exchange":"audit.topic.exchange","routingKey":"Probe.AuditOut"}
+          },
+          "ceAttributes": {"type":"Probe.AuditOut","source":"analytics","specversion":"1.0"},
+          "payloadMatch": {"probeId":"audit-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "analytics",
+          "routingKey": "Audit.Entry",
+          "payload": {"probeId":"audit-in-1","_tckInjected":true},
+          "rawTarget": {
+            "nats": {"subject":"audit.Audit.Entry"},
+            "amqp": {"exchange":"audit.topic.exchange","routingKey":"Audit.Entry"}
+          },
+          "ceAttributes": {"type":"Audit.Entry","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"audit-in-1","_tckInjected":true}
         }
       ]
     },

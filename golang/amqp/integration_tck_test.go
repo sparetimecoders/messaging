@@ -32,7 +32,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
+	amqplib "github.com/rabbitmq/amqp091-go"
 	"github.com/sparetimecoders/gomessaging/spec"
 	"github.com/sparetimecoders/gomessaging/spec/spectest"
 	"github.com/stretchr/testify/require"
@@ -177,6 +180,84 @@ func (a *amqpIntegrationAdapter) QueryBrokerState(t *testing.T) spectest.BrokerS
 			Bindings:  filteredBindings,
 		},
 	}
+}
+
+func (a *amqpIntegrationAdapter) PublishRaw(t *testing.T, target spectest.ProbeTarget, payload json.RawMessage, headers map[string]string) error {
+	t.Helper()
+	conn, err := amqplib.Dial(a.amqpURL)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	amqpHeaders := amqplib.Table{}
+	for attr, val := range headers {
+		amqpHeaders[spec.AMQPCEHeaderKey(attr)] = val
+	}
+	amqpHeaders[spec.AMQPCEHeaderKey(spec.CEAttrID)] = uuid.New().String()
+	amqpHeaders[spec.AMQPCEHeaderKey(spec.CEAttrTime)] = time.Now().UTC().Format(time.RFC3339)
+
+	return ch.PublishWithContext(context.Background(), target.Exchange, target.RoutingKey, false, false, amqplib.Publishing{
+		Body:         payload,
+		ContentType:  "application/json",
+		DeliveryMode: 2,
+		Headers:      amqpHeaders,
+	})
+}
+
+func (a *amqpIntegrationAdapter) CreateProbeConsumer(t *testing.T, target spectest.ProbeTarget) *spectest.ProbeConsumer {
+	t.Helper()
+	conn, err := amqplib.Dial(a.amqpURL)
+	require.NoError(t, err)
+
+	ch, err := conn.Channel()
+	require.NoError(t, err)
+
+	q, err := ch.QueueDeclare("", false, true, true, false, nil)
+	require.NoError(t, err)
+
+	err = ch.QueueBind(q.Name, target.RoutingKey, target.Exchange, false, nil)
+	require.NoError(t, err)
+
+	deliveries, err := ch.Consume(q.Name, "", true, true, false, false, nil)
+	require.NoError(t, err)
+
+	return &spectest.ProbeConsumer{
+		Receive: func(timeout time.Duration) *spectest.RawMessage {
+			select {
+			case d := <-deliveries:
+				hdrs := make(map[string]string)
+				normalized := spec.NormalizeCEHeaders(amqpTableToHeaders(d.Headers))
+				for k, v := range normalized {
+					if strings.HasPrefix(k, "ce-") {
+						if s, ok := v.(string); ok {
+							hdrs[strings.TrimPrefix(k, "ce-")] = s
+						}
+					}
+				}
+				return &spectest.RawMessage{
+					Payload: d.Body,
+					Headers: hdrs,
+				}
+			case <-time.After(timeout):
+				return nil
+			}
+		},
+		Close: func() {
+			_ = ch.Close()
+			_ = conn.Close()
+		},
+	}
+}
+
+func amqpTableToHeaders(table amqplib.Table) spec.Headers {
+	headers := make(spec.Headers, len(table))
+	for k, v := range table {
+		headers[k] = v
+	}
+	return headers
 }
 
 func TestIntegrationTCK(t *testing.T) {

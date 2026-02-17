@@ -42,6 +42,7 @@ type TCKScenario struct {
 	ExpectedEndpoints map[string]map[string][]ExpectedEndpoint `json:"expectedEndpoints"`
 	Broker            BrokerState                              `json:"broker"`
 	Messages          []MessageSpec                            `json:"messages"`
+	ProbeMessages     []ProbeMessage                           `json:"probeMessages,omitempty"`
 }
 
 // ServiceConfig describes the setup intents for a single service.
@@ -97,6 +98,53 @@ type IntegrationAdapter interface {
 	TransportKey() string
 	StartService(t *testing.T, serviceName string, intents []SetupIntent) *ServiceHandle
 	QueryBrokerState(t *testing.T) BrokerState
+}
+
+// ProbeMessage describes a cross-validation probe where the TCK itself acts as
+// an independent publisher or consumer using raw broker access. This prevents
+// implementations from passing the TCK by hardcoding responses.
+type ProbeMessage struct {
+	Direction        string                 `json:"direction"` // "outbound" or "inbound"
+	PublishVia       string                 `json:"publishVia,omitempty"`
+	ExpectReceivedBy string                 `json:"expectReceivedBy,omitempty"`
+	RoutingKey       string                 `json:"routingKey"`
+	Payload          json.RawMessage        `json:"payload"`
+	RawTarget        map[string]ProbeTarget `json:"rawTarget"`
+	CEAttributes     map[string]string      `json:"ceAttributes"`
+	PayloadMatch     json.RawMessage        `json:"payloadMatch,omitempty"`
+}
+
+// ProbeTarget describes a transport-specific raw publish/consume target.
+type ProbeTarget struct {
+	Stream     string `json:"stream,omitempty"`     // NATS
+	Subject    string `json:"subject,omitempty"`    // NATS
+	Exchange   string `json:"exchange,omitempty"`   // AMQP
+	RoutingKey string `json:"routingKey,omitempty"` // AMQP
+}
+
+// RawMessage is a message received directly from the broker.
+type RawMessage struct {
+	Payload json.RawMessage
+	Headers map[string]string // bare CE attribute names → values
+}
+
+// ProbeConsumer reads raw messages from the broker.
+type ProbeConsumer struct {
+	Receive func(timeout time.Duration) *RawMessage
+	Close   func()
+}
+
+// ProbeAdapter provides raw broker access for cross-validation probes.
+// Adapters implementing this interface enable Phase 5 of the TCK: the runner
+// independently verifies that messages actually flow through the broker,
+// preventing implementations from passing by hardcoding responses.
+type ProbeAdapter interface {
+	// PublishRaw publishes a raw message to the broker, bypassing the implementation.
+	// Header keys are bare CE attribute names ("type", "source", etc.).
+	PublishRaw(t *testing.T, target ProbeTarget, payload json.RawMessage, headers map[string]string) error
+	// CreateProbeConsumer sets up a raw consumer on the broker. Must be called
+	// before the message is published so the consumer is ready to receive.
+	CreateProbeConsumer(t *testing.T, target ProbeTarget) *ProbeConsumer
 }
 
 type tckFixtureFile struct {
@@ -194,6 +242,22 @@ func RunIntegrationTCKScenario(t *testing.T, adapter IntegrationAdapter, scenari
 	for _, msg := range scenario.Messages {
 		publishAndAssert(t, msg, scenario.Services, handles)
 	}
+
+	// Phase 5: Cross-validation probes.
+	if probeAdapter, ok := adapter.(ProbeAdapter); ok {
+		for _, probe := range scenario.ProbeMessages {
+			target, ok := probe.RawTarget[key]
+			if !ok {
+				continue
+			}
+			switch probe.Direction {
+			case "outbound":
+				runOutboundProbe(t, probe, target, handles, scenario.Services, probeAdapter)
+			case "inbound":
+				runInboundProbe(t, probe, target, handles, probeAdapter)
+			}
+		}
+	}
 }
 
 func publishAndAssert(t *testing.T, msg MessageSpec, services map[string]ServiceConfig, handles map[string]*ServiceHandle) {
@@ -287,5 +351,89 @@ func assertPayloadMatch(t *testing.T, target string, actual, expected json.RawMe
 	require.NoError(t, json.Unmarshal(expected, &expectedMap), "failed to unmarshal expected payload for %s", target)
 	for k, v := range expectedMap {
 		assert.Equal(t, v, actualMap[k], "payload field %q mismatch for delivery to %s", k, target)
+	}
+}
+
+// runOutboundProbe verifies that a message published by the implementation
+// actually arrives on the broker by consuming it with a raw broker client.
+func runOutboundProbe(t *testing.T, probe ProbeMessage, target ProbeTarget, handles map[string]*ServiceHandle, services map[string]ServiceConfig, adapter ProbeAdapter) {
+	t.Helper()
+
+	// Set up raw consumer before publishing so it is ready to receive.
+	consumer := adapter.CreateProbeConsumer(t, target)
+	t.Cleanup(consumer.Close)
+
+	// Publish via the implementation.
+	h, ok := handles[probe.PublishVia]
+	require.True(t, ok, "outbound probe: service %q not in handles", probe.PublishVia)
+	pub := findPublisher(t, probe.PublishVia, services[probe.PublishVia], h)
+	err := pub(context.Background(), probe.RoutingKey, probe.Payload)
+	require.NoError(t, err, "outbound probe: publish failed for %s/%s", probe.PublishVia, probe.RoutingKey)
+
+	// Read raw message from broker.
+	raw := consumer.Receive(5 * time.Second)
+	require.NotNil(t, raw, "outbound probe: no raw message received from broker for %s", probe.RoutingKey)
+
+	// Assert CE attributes.
+	for attr, expected := range probe.CEAttributes {
+		assert.Equal(t, expected, raw.Headers[attr],
+			"outbound probe: CE attribute %q mismatch", attr)
+	}
+
+	// Assert payload.
+	if len(probe.PayloadMatch) > 0 {
+		assertPayloadMatch(t, "outbound-probe", raw.Payload, probe.PayloadMatch)
+	}
+}
+
+// runInboundProbe verifies that the implementation's consumer actually reads
+// from the broker by injecting a raw message and checking Received().
+func runInboundProbe(t *testing.T, probe ProbeMessage, target ProbeTarget, handles map[string]*ServiceHandle, adapter ProbeAdapter) {
+	t.Helper()
+
+	// Publish raw message to broker.
+	err := adapter.PublishRaw(t, target, probe.Payload, probe.CEAttributes)
+	require.NoError(t, err, "inbound probe: raw publish failed")
+
+	// Wait for the implementation's consumer to receive it.
+	h, ok := handles[probe.ExpectReceivedBy]
+	require.True(t, ok, "inbound probe: service %q not in handles", probe.ExpectReceivedBy)
+
+	// Match by ce-source since inbound probes use a unique source ("tck-probe").
+	expectedSource := probe.CEAttributes["source"]
+	require.NotEmpty(t, expectedSource, "inbound probe must specify ceAttributes.source for matching")
+
+	assert.Eventually(t, func() bool {
+		for _, rm := range h.Received() {
+			if rm.Metadata.Source == expectedSource {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Second, 50*time.Millisecond,
+		"inbound probe: expected delivery to %s with source %s", probe.ExpectReceivedBy, expectedSource)
+
+	var matched *ReceivedMessage
+	for _, rm := range h.Received() {
+		if rm.Metadata.Source == expectedSource {
+			matched = &rm
+			break
+		}
+	}
+	if matched == nil {
+		return
+	}
+
+	// Assert metadata.
+	if v, ok := probe.CEAttributes["type"]; ok {
+		assert.Equal(t, v, matched.Metadata.Type, "inbound probe: metadata.type mismatch")
+	}
+	if v, ok := probe.CEAttributes["specversion"]; ok {
+		assert.Equal(t, v, matched.Metadata.SpecVersion, "inbound probe: metadata.specVersion mismatch")
+	}
+
+	// Assert payload.
+	if len(probe.PayloadMatch) > 0 {
+		assertPayloadMatch(t, "inbound-probe", matched.Payload, probe.PayloadMatch)
 	}
 }

@@ -28,7 +28,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/sparetimecoders/gomessaging/spec"
@@ -176,6 +178,65 @@ func (a *natsIntegrationAdapter) QueryBrokerState(t *testing.T) spectest.BrokerS
 		NATS: spectest.NATSBrokerState{
 			Streams:   streams,
 			Consumers: consumers,
+		},
+	}
+}
+
+func (a *natsIntegrationAdapter) PublishRaw(t *testing.T, target spectest.ProbeTarget, payload json.RawMessage, headers map[string]string) error {
+	t.Helper()
+	nc, err := natsgo.Connect(a.url)
+	require.NoError(t, err)
+	defer nc.Close()
+
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+
+	natsHeaders := natsgo.Header{}
+	for attr, val := range headers {
+		natsHeaders.Set("ce-"+attr, val)
+	}
+	natsHeaders.Set(spec.CEID, uuid.New().String())
+	natsHeaders.Set(spec.CETime, time.Now().UTC().Format(time.RFC3339))
+
+	msg := &natsgo.Msg{
+		Subject: target.Subject,
+		Data:    payload,
+		Header:  natsHeaders,
+	}
+	_, err = js.PublishMsg(context.Background(), msg)
+	return err
+}
+
+func (a *natsIntegrationAdapter) CreateProbeConsumer(t *testing.T, target spectest.ProbeTarget) *spectest.ProbeConsumer {
+	t.Helper()
+	nc, err := natsgo.Connect(a.url)
+	require.NoError(t, err)
+
+	sub, err := nc.SubscribeSync(target.Subject)
+	require.NoError(t, err)
+	require.NoError(t, nc.Flush())
+
+	return &spectest.ProbeConsumer{
+		Receive: func(timeout time.Duration) *spectest.RawMessage {
+			msg, err := sub.NextMsg(timeout)
+			if err != nil {
+				return nil
+			}
+			hdrs := make(map[string]string)
+			for k := range msg.Header {
+				v := msg.Header.Get(k)
+				if strings.HasPrefix(k, "ce-") {
+					hdrs[strings.TrimPrefix(k, "ce-")] = v
+				}
+			}
+			return &spectest.RawMessage{
+				Payload: msg.Data,
+				Headers: hdrs,
+			}
+		},
+		Close: func() {
+			_ = sub.Unsubscribe()
+			nc.Close()
 		},
 	}
 }
