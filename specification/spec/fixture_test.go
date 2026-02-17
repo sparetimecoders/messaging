@@ -1044,6 +1044,26 @@ type expectedEndpoint struct {
 
 type brokerState struct {
 	AMQP amqpBrokerState `json:"amqp"`
+	NATS natsBrokerState `json:"nats"`
+}
+
+type natsBrokerState struct {
+	Streams   []natsStream   `json:"streams"`
+	Consumers []natsConsumer `json:"consumers"`
+}
+
+type natsStream struct {
+	Name     string   `json:"name"`
+	Subjects []string `json:"subjects"`
+	Storage  string   `json:"storage"`
+}
+
+type natsConsumer struct {
+	Stream         string   `json:"stream"`
+	Durable        string   `json:"durable,omitempty"`
+	FilterSubject  string   `json:"filterSubject,omitempty"`
+	FilterSubjects []string `json:"filterSubjects,omitempty"`
+	AckPolicy      string   `json:"ackPolicy"`
 }
 
 type amqpBrokerState struct {
@@ -1116,13 +1136,21 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues:   []amqpQueue{},
+						Bindings: []amqpBinding{},
 					},
-					Queues:   []amqpQueue{},
-					Bindings: []amqpBinding{},
-				}},
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: natsEvents, Subjects: []string{NATSSubject(natsEvents, ">")}, Storage: "file"},
+						},
+						Consumers: []natsConsumer{},
+					},
+				},
 			},
 			{
 				Name:        "event stream consumer durable",
@@ -1152,26 +1180,36 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							Name:       ServiceEventQueueName(eventsExchange, "orders"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								Name:       ServiceEventQueueName(eventsExchange, "orders"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:      eventsExchange,
+								Destination: ServiceEventQueueName(eventsExchange, "orders"),
+								RoutingKey: "Order.Created",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:      eventsExchange,
-							Destination: ServiceEventQueueName(eventsExchange, "orders"),
-							RoutingKey: "Order.Created",
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: natsEvents, Subjects: []string{NATSSubject(natsEvents, ">")}, Storage: "file"},
+						},
+						Consumers: []natsConsumer{
+							{Stream: natsEvents, Durable: "orders", FilterSubject: NATSSubject(natsEvents, "Order.Created"), AckPolicy: "explicit"},
 						},
 					},
-				}},
+				},
 			},
 			{
 				Name:        "event stream consumer transient",
@@ -1202,26 +1240,36 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							NamePrefix: ServiceEventQueueName(eventsExchange, "dashboard") + "-",
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: transientQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								NamePrefix: ServiceEventQueueName(eventsExchange, "dashboard") + "-",
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: transientQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:            eventsExchange,
+								DestinationPrefix: ServiceEventQueueName(eventsExchange, "dashboard") + "-",
+								RoutingKey:        "Order.Created",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:            eventsExchange,
-							DestinationPrefix: ServiceEventQueueName(eventsExchange, "dashboard") + "-",
-							RoutingKey:        "Order.Created",
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: natsEvents, Subjects: []string{NATSSubject(natsEvents, ">")}, Storage: "file"},
+						},
+						Consumers: []natsConsumer{
+							{Stream: natsEvents, FilterSubject: NATSSubject(natsEvents, "Order.Created"), AckPolicy: "explicit"},
 						},
 					},
-				}},
+				},
 			},
 			{
 				Name:        "custom stream publisher and consumer",
@@ -1264,26 +1312,36 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: TopicExchangeName("audit"), Type: "topic", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							Name:       ServiceEventQueueName(TopicExchangeName("audit"), "analytics"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: TopicExchangeName("audit"), Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								Name:       ServiceEventQueueName(TopicExchangeName("audit"), "analytics"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:      TopicExchangeName("audit"),
+								Destination: ServiceEventQueueName(TopicExchangeName("audit"), "analytics"),
+								RoutingKey: "Audit.Entry",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:      TopicExchangeName("audit"),
-							Destination: ServiceEventQueueName(TopicExchangeName("audit"), "analytics"),
-							RoutingKey: "Audit.Entry",
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: NATSStreamName("audit"), Subjects: []string{NATSSubject(NATSStreamName("audit"), ">")}, Storage: "file"},
+						},
+						Consumers: []natsConsumer{
+							{Stream: NATSStreamName("audit"), Durable: "analytics", FilterSubject: NATSSubject(NATSStreamName("audit"), "Audit.Entry"), AckPolicy: "explicit"},
 						},
 					},
-				}},
+				},
 			},
 			{
 				Name:        "service request consumer",
@@ -1313,27 +1371,33 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: ServiceRequestExchangeName("email-svc"), Type: "direct", Durable: true, AutoDelete: false},
-						{Name: ServiceResponseExchangeName("email-svc"), Type: "headers", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							Name:       ServiceRequestQueueName("email-svc"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: ServiceRequestExchangeName("email-svc"), Type: "direct", Durable: true, AutoDelete: false},
+							{Name: ServiceResponseExchangeName("email-svc"), Type: "headers", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								Name:       ServiceRequestQueueName("email-svc"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:      ServiceRequestExchangeName("email-svc"),
+								Destination: ServiceRequestQueueName("email-svc"),
+								RoutingKey: "email.send",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:      ServiceRequestExchangeName("email-svc"),
-							Destination: ServiceRequestQueueName("email-svc"),
-							RoutingKey: "email.send",
-						},
+					NATS: natsBrokerState{
+						Streams:   []natsStream{},
+						Consumers: []natsConsumer{},
 					},
-				}},
+				},
 			},
 			{
 				Name:        "service publisher and response consumer",
@@ -1376,27 +1440,33 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: ServiceRequestExchangeName("email-svc"), Type: "direct", Durable: true, AutoDelete: false},
-						{Name: ServiceResponseExchangeName("email-svc"), Type: "headers", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							Name:       ServiceResponseQueueName("email-svc", "web-app"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: ServiceRequestExchangeName("email-svc"), Type: "direct", Durable: true, AutoDelete: false},
+							{Name: ServiceResponseExchangeName("email-svc"), Type: "headers", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								Name:       ServiceResponseQueueName("email-svc", "web-app"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:      ServiceResponseExchangeName("email-svc"),
+								Destination: ServiceResponseQueueName("email-svc", "web-app"),
+								RoutingKey: "email.send",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:      ServiceResponseExchangeName("email-svc"),
-							Destination: ServiceResponseQueueName("email-svc", "web-app"),
-							RoutingKey: "email.send",
-						},
+					NATS: natsBrokerState{
+						Streams:   []natsStream{},
+						Consumers: []natsConsumer{},
 					},
-				}},
+				},
 			},
 			{
 				Name:        "event stream durable and transient mixed",
@@ -1444,37 +1514,48 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								NamePrefix: ServiceEventQueueName(eventsExchange, "client1") + "-",
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: transientQueueExpiry},
+							},
+							{
+								Name:       ServiceEventQueueName(eventsExchange, "client1"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:            eventsExchange,
+								DestinationPrefix: ServiceEventQueueName(eventsExchange, "client1") + "-",
+								RoutingKey:        "Order.Created",
+							},
+							{
+								Source:      eventsExchange,
+								Destination: ServiceEventQueueName(eventsExchange, "client1"),
+								RoutingKey: "Order.Updated",
+							},
+						},
 					},
-					Queues: []amqpQueue{
-						{
-							NamePrefix: ServiceEventQueueName(eventsExchange, "client1") + "-",
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: transientQueueExpiry},
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: natsEvents, Subjects: []string{NATSSubject(natsEvents, ">")}, Storage: "file"},
 						},
-						{
-							Name:       ServiceEventQueueName(eventsExchange, "client1"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+						Consumers: []natsConsumer{
+							{Stream: natsEvents, FilterSubject: NATSSubject(natsEvents, "Order.Created"), AckPolicy: "explicit"},
+							{Stream: natsEvents, Durable: "client1", FilterSubject: NATSSubject(natsEvents, "Order.Updated"), AckPolicy: "explicit"},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:            eventsExchange,
-							DestinationPrefix: ServiceEventQueueName(eventsExchange, "client1") + "-",
-							RoutingKey:        "Order.Created",
-						},
-						{
-							Source:      eventsExchange,
-							Destination: ServiceEventQueueName(eventsExchange, "client1"),
-							RoutingKey: "Order.Updated",
-						},
-					},
-				}},
+				},
 			},
 			{
 				Name:        "event stream consumer second service",
@@ -1504,26 +1585,36 @@ func generateTopologyFixtures() topologyFixtures {
 						},
 					},
 				},
-				Broker: brokerState{AMQP: amqpBrokerState{
-					Exchanges: []amqpExchange{
-						{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
-					},
-					Queues: []amqpQueue{
-						{
-							Name:       ServiceEventQueueName(eventsExchange, "notifications"),
-							Durable:    true,
-							AutoDelete: false,
-							Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{
+							{Name: eventsExchange, Type: "topic", Durable: true, AutoDelete: false},
+						},
+						Queues: []amqpQueue{
+							{
+								Name:       ServiceEventQueueName(eventsExchange, "notifications"),
+								Durable:    true,
+								AutoDelete: false,
+								Arguments:  queueArguments{XQueueType: quorumQueueType, XExpires: durableQueueExpiry},
+							},
+						},
+						Bindings: []amqpBinding{
+							{
+								Source:      eventsExchange,
+								Destination: ServiceEventQueueName(eventsExchange, "notifications"),
+								RoutingKey: "Order.Created",
+							},
 						},
 					},
-					Bindings: []amqpBinding{
-						{
-							Source:      eventsExchange,
-							Destination: ServiceEventQueueName(eventsExchange, "notifications"),
-							RoutingKey: "Order.Created",
+					NATS: natsBrokerState{
+						Streams: []natsStream{
+							{Name: natsEvents, Subjects: []string{NATSSubject(natsEvents, ">")}, Storage: "file"},
+						},
+						Consumers: []natsConsumer{
+							{Stream: natsEvents, Durable: "notifications", FilterSubject: NATSSubject(natsEvents, "Order.Created"), AckPolicy: "explicit"},
 						},
 					},
-				}},
+				},
 			},
 		},
 	}
