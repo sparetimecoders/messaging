@@ -25,6 +25,8 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/sparetimecoders/gomessaging/spec"
@@ -41,11 +43,101 @@ func TestTopologyConformance(t *testing.T) {
 			continue
 		}
 		t.Run(scenario.Name, func(t *testing.T) {
-			topo, err := CollectTopology(scenario.ServiceName, natsIntentsToSetups(t, scenario.Setups)...)
-			require.NoError(t, err)
+			c := &Connection{
+				serviceName: scenario.ServiceName,
+				logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+				topology:    spec.Topology{Transport: spec.TransportNATS, ServiceName: scenario.ServiceName},
+				collectMode: true,
+			}
+
+			setups := natsIntentsToSetups(t, scenario.Setups)
+			for _, s := range setups {
+				require.NoError(t, s(c))
+			}
+
+			topo := c.Topology()
 			require.Equal(t, scenario.ServiceName, topo.ServiceName)
 			spectest.AssertTopology(t, expected, topo)
+
+			actualBroker := deriveNATSBrokerState(c)
+			spectest.AssertNATSBrokerState(t, scenario.Broker.NATS, actualBroker)
 		})
+	}
+}
+
+// deriveNATSBrokerState builds NATSBrokerState from Connection's collected data,
+// mirroring the grouping logic of startPendingJSConsumers.
+func deriveNATSBrokerState(c *Connection) spectest.NATSBrokerState {
+	// Collect all unique stream names from publishers and consumers.
+	seen := make(map[string]bool)
+	var streamNames []string
+	for _, name := range c.pendingStreams {
+		if !seen[name] {
+			seen[name] = true
+			streamNames = append(streamNames, name)
+		}
+	}
+	for _, cfg := range c.pendingJSConsumers {
+		if !seen[cfg.stream] {
+			seen[cfg.stream] = true
+			streamNames = append(streamNames, cfg.stream)
+		}
+	}
+
+	streams := make([]spectest.NATSStream, 0, len(streamNames))
+	for _, name := range streamNames {
+		streams = append(streams, spectest.NATSStream{
+			Name:     name,
+			Subjects: []string{streamSubjects(name)},
+			Storage:  "file",
+		})
+	}
+
+	// Group consumer configs by stream+consumerName (same key as startPendingJSConsumers).
+	type group struct {
+		configs []*consumerConfig
+	}
+	groups := make(map[string]*group)
+	var order []string
+	for _, cfg := range c.pendingJSConsumers {
+		key := consumerGroupKey(cfg)
+		g, exists := groups[key]
+		if !exists {
+			g = &group{}
+			groups[key] = g
+			order = append(order, key)
+		}
+		g.configs = append(g.configs, cfg)
+	}
+
+	consumers := make([]spectest.NATSConsumer, 0, len(order))
+	for _, key := range order {
+		g := groups[key]
+		first := g.configs[0]
+
+		var filterSubjects []string
+		for _, cfg := range g.configs {
+			filterSubjects = append(filterSubjects, filterSubject(cfg.stream, cfg.routingKey))
+		}
+
+		nc := spectest.NATSConsumer{
+			Stream:    first.stream,
+			AckPolicy: "explicit",
+		}
+		if !first.ephemeral {
+			nc.Durable = first.consumerName
+		}
+		if len(filterSubjects) == 1 {
+			nc.FilterSubject = filterSubjects[0]
+		} else {
+			nc.FilterSubjects = filterSubjects
+		}
+		consumers = append(consumers, nc)
+	}
+
+	return spectest.NATSBrokerState{
+		Streams:   streams,
+		Consumers: consumers,
 	}
 }
 

@@ -50,6 +50,7 @@ func StreamPublisher(stream string, publisher *Publisher) Setup {
 		if stream != defaultEventStreamName {
 			pattern = spec.PatternCustomStream
 		}
+		c.pendingStreams = append(c.pendingStreams, name)
 		c.addEndpoint(spec.Endpoint{
 			Direction:    spec.DirectionPublish,
 			Pattern:      pattern,

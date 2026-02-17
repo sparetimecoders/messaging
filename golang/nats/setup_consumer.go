@@ -71,10 +71,8 @@ func StreamConsumer[T any](stream, routingKey string, handler spec.EventHandler[
 			return err
 		}
 
-		if !c.collectMode {
-			if err := c.startJSConsumer(context.Background(), cfg); err != nil {
-				return err
-			}
+		if err := c.startJSConsumer(context.Background(), cfg); err != nil {
+			return err
 		}
 
 		pattern := spec.PatternEventStream
@@ -108,10 +106,8 @@ func TransientStreamConsumer[T any](stream, routingKey string, handler spec.Even
 			return err
 		}
 
-		if !c.collectMode {
-			if err := c.startJSConsumer(context.Background(), cfg); err != nil {
-				return err
-			}
+		if err := c.startJSConsumer(context.Background(), cfg); err != nil {
+			return err
 		}
 
 		pattern := spec.PatternEventStream

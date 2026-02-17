@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	amqplib "github.com/rabbitmq/amqp091-go"
 	"github.com/sparetimecoders/gomessaging/spec"
 	"github.com/sparetimecoders/gomessaging/spec/spectest"
 	"github.com/stretchr/testify/require"
@@ -53,8 +54,67 @@ func TestTopologyConformance(t *testing.T) {
 			topo := conn.Topology()
 			require.Equal(t, scenario.ServiceName, topo.ServiceName)
 			spectest.AssertTopology(t, expected, topo)
+
+			actualBroker := spectest.AMQPBrokerState{
+				Exchanges: convertExchangeDecls(channel.ExchangeDeclarations),
+				Queues:    convertQueueDecls(channel.QueueDeclarations),
+				Bindings:  convertBindingDecls(channel.BindingDeclarations),
+			}
+			spectest.AssertAMQPBrokerState(t, scenario.Broker.AMQP, actualBroker)
 		})
 	}
+}
+
+func convertExchangeDecls(decls []ExchangeDeclaration) []spectest.AMQPExchange {
+	seen := make(map[string]bool)
+	result := make([]spectest.AMQPExchange, 0, len(decls))
+	for _, d := range decls {
+		if seen[d.name] {
+			continue
+		}
+		seen[d.name] = true
+		result = append(result, spectest.AMQPExchange{
+			Name:       d.name,
+			Type:       d.kind,
+			Durable:    d.durable,
+			AutoDelete: d.autoDelete,
+		})
+	}
+	return result
+}
+
+func convertQueueDecls(decls []QueueDeclaration) []spectest.AMQPQueue {
+	result := make([]spectest.AMQPQueue, 0, len(decls))
+	for _, d := range decls {
+		args := spectest.QueueArguments{}
+		if d.args != nil {
+			if v, ok := d.args[amqplib.QueueTypeArg].(string); ok {
+				args.XQueueType = v
+			}
+			if v, ok := d.args[amqplib.QueueTTLArg].(int); ok {
+				args.XExpires = v
+			}
+		}
+		result = append(result, spectest.AMQPQueue{
+			Name:       d.name,
+			Durable:    d.durable,
+			AutoDelete: d.autoDelete,
+			Arguments:  args,
+		})
+	}
+	return result
+}
+
+func convertBindingDecls(decls []BindingDeclaration) []spectest.AMQPBinding {
+	result := make([]spectest.AMQPBinding, 0, len(decls))
+	for _, d := range decls {
+		result = append(result, spectest.AMQPBinding{
+			Source:      d.exchange,
+			Destination: d.queue,
+			RoutingKey:  d.key,
+		})
+	}
+	return result
 }
 
 func mapIntentsToSetups(t *testing.T, intents []spectest.SetupIntent) []Setup {

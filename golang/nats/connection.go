@@ -64,6 +64,9 @@ type Connection struct {
 	// They are grouped and started after all setup functions have run.
 	pendingJSConsumers []*consumerConfig
 
+	// pendingStreams collects stream names declared by publishers during setup.
+	pendingStreams []string
+
 	streamDefaults   StreamConfig            // connection-level defaults
 	streamConfigs    map[string]StreamConfig // per-stream overrides
 	consumerDefaults ConsumerDefaults        // connection-level consumer defaults
