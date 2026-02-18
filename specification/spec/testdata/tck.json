@@ -194,6 +194,59 @@
             {"to":"billing","metadataType":"Order.Updated"}
           ]
         }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "orders",
+          "routingKey": "Probe.WildcardOut",
+          "payload": {"probeId":"wc-out-1"},
+          "ceAttributes": {"type":"Probe.WildcardOut","source":"orders","specversion":"1.0"},
+          "payloadMatch": {"probeId":"wc-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "notifications",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"wc-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"wc-in-1","_tckInjected":true}
+        }
+      ]
+    },
+    {
+      "name": "custom stream transient consumer",
+      "services": {
+        "metrics-pub": { "setups": [{"pattern":"custom-stream","direction":"publish","exchange":"telemetry"}] },
+        "live-view":   { "setups": [{"pattern":"custom-stream","direction":"consume","exchange":"telemetry","routingKey":"Metric.Recorded","ephemeral":true}] }
+      },
+      "messages": [
+        {
+          "from": "metrics-pub",
+          "routingKey": "Metric.Recorded",
+          "payload": {"metricName":"cpu_usage","value":72.5},
+          "expectedDeliveries": [
+            {"to":"live-view","metadata":{"type":"Metric.Recorded","source":"metrics-pub","specVersion":"1.0"},"payloadMatch":{"metricName":"cpu_usage","value":72.5}}
+          ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "metrics-pub",
+          "routingKey": "Probe.TelemetryOut",
+          "payload": {"probeId":"telemetry-out-1"},
+          "ceAttributes": {"type":"Probe.TelemetryOut","source":"metrics-pub","specversion":"1.0"},
+          "payloadMatch": {"probeId":"telemetry-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "live-view",
+          "routingKey": "Metric.Recorded",
+          "payload": {"probeId":"telemetry-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Metric.Recorded","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"telemetry-in-1","_tckInjected":true}
+        }
       ]
     }
   ]

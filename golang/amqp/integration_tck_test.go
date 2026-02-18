@@ -26,12 +26,15 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"sync"
 	"testing"
 
 	"github.com/sparetimecoders/gomessaging/spec"
 	"github.com/sparetimecoders/gomessaging/spec/spectest"
 	"github.com/sparetimecoders/gomessaging/tck"
+	"github.com/stretchr/testify/require"
 )
 
 type amqpIntegrationAdapter struct {
@@ -143,6 +146,29 @@ func TestIntegrationTCK(t *testing.T) {
 		managementURL: managementURL,
 	}
 	tck.RunTCK(spectest.WrapT(t), "../../specification/spec/testdata/tck.json", adapter)
+}
+
+func TestIntegrationTCKSubprocess(t *testing.T) {
+	amqpURL := os.Getenv("RABBITMQ_URL")
+	if amqpURL == "" {
+		t.Skip("RABBITMQ_URL not set, skipping AMQP subprocess TCK")
+	}
+
+	// Build the amqp-adapter binary from the tck-adapters module.
+	binDir := t.TempDir()
+	binPath := filepath.Join(binDir, "amqp-adapter")
+	build := exec.Command("go", "build", "-o", binPath, "github.com/sparetimecoders/gomessaging/tck-adapters/cmd/amqp-adapter")
+	out, err := build.CombinedOutput()
+	require.NoError(t, err, "failed to build amqp-adapter: %s", out)
+
+	wt := spectest.WrapT(t)
+	scenarios := tck.LoadScenarios(wt, "../../specification/spec/testdata/tck.json")
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			adapter := tck.NewSubprocessAdapter(spectest.WrapT(t), binPath)
+			tck.RunScenario(spectest.WrapT(t), adapter, scenario)
+		})
+	}
 }
 
 func amqpPublishFunc(pub *Publisher) spectest.PublishFunc {

@@ -111,7 +111,125 @@ func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 	t.Helper()
 	key := adapter.TransportKey()
 
-	// Phase 1: Setup — clean broker, generate name mapper.
+	broker, mapper, handles := phaseSetup(t, adapter, scenario)
+	phaseTopology(t, key, scenario, handles, mapper)
+	phaseBrokerState(t, key, scenario, broker, mapper)
+	phaseDelivery(t, scenario, handles, mapper)
+	phaseProbes(t, key, scenario, handles, broker, mapper)
+}
+
+// RunScenarioWithReport runs a single scenario and returns a structured report
+// with per-phase timing and error capture.
+func RunScenarioWithReport(t spectest.T, adapter Adapter, scenario Scenario) ScenarioReport {
+	t.Helper()
+	start := time.Now()
+	key := adapter.TransportKey()
+
+	report := ScenarioReport{
+		Name:     scenario.Name,
+		Services: scenarioServiceNames(scenario.Services),
+		Patterns: scenarioPatterns(scenario.Services),
+		Passed:   true,
+	}
+
+	rt := newReportingT(t)
+
+	// Phase: setup.
+	phaseStart := time.Now()
+	broker, mapper, handles := phaseSetup(rt, adapter, scenario)
+	setupErrors := rt.snapshot()
+	setupFatal := rt.hasFatal()
+	report.Phases = append(report.Phases, PhaseResult{
+		Name: "setup", Passed: len(setupErrors) == 0, Duration: time.Since(phaseStart), Errors: setupErrors,
+	})
+	if setupFatal || len(setupErrors) > 0 {
+		report.Passed = false
+		report.Duration = time.Since(start)
+		return report
+	}
+
+	// Phase: topology.
+	phaseStart = time.Now()
+	phaseTopology(rt, key, scenario, handles, mapper)
+	topoErrors := rt.snapshot()
+	report.Phases = append(report.Phases, PhaseResult{
+		Name: "topology", Passed: len(topoErrors) == 0, Duration: time.Since(phaseStart), Errors: topoErrors,
+	})
+	if len(topoErrors) > 0 {
+		report.Passed = false
+	}
+
+	// Phase: broker.
+	phaseStart = time.Now()
+	phaseBrokerState(rt, key, scenario, broker, mapper)
+	brokerErrors := rt.snapshot()
+	report.Phases = append(report.Phases, PhaseResult{
+		Name: "broker", Passed: len(brokerErrors) == 0, Duration: time.Since(phaseStart), Errors: brokerErrors,
+	})
+	if len(brokerErrors) > 0 {
+		report.Passed = false
+	}
+
+	// Phase: delivery.
+	phaseStart = time.Now()
+	phaseDelivery(rt, scenario, handles, mapper)
+	deliveryErrors := rt.snapshot()
+	report.Phases = append(report.Phases, PhaseResult{
+		Name: "delivery", Passed: len(deliveryErrors) == 0, Duration: time.Since(phaseStart), Errors: deliveryErrors,
+	})
+	if len(deliveryErrors) > 0 {
+		report.Passed = false
+	}
+
+	// Phase: probes.
+	phaseStart = time.Now()
+	phaseProbes(rt, key, scenario, handles, broker, mapper)
+	probeErrors := rt.snapshot()
+	report.Phases = append(report.Phases, PhaseResult{
+		Name: "probes", Passed: len(probeErrors) == 0, Duration: time.Since(phaseStart), Errors: probeErrors,
+	})
+	if len(probeErrors) > 0 {
+		report.Passed = false
+	}
+
+	report.Duration = time.Since(start)
+	return report
+}
+
+// RunTCKWithReport runs all scenarios and produces a full conformance report.
+func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKReport {
+	t.Helper()
+	scenarios := LoadScenarios(t, fixturePath)
+
+	report := &TCKReport{
+		TransportKey: adapter.TransportKey(),
+		Timestamp:    time.Now(),
+	}
+
+	for _, scenario := range scenarios {
+		s := scenario
+		t.Run(s.Name, func(t spectest.T) {
+			sr := RunScenarioWithReport(t, adapter, s)
+			report.Scenarios = append(report.Scenarios, sr)
+			if sr.Passed {
+				report.Summary.Passed++
+			} else {
+				report.Summary.Failed++
+			}
+			report.Summary.Total++
+		})
+	}
+
+	report.Coverage = ComputeCoverageMatrix(scenarios)
+	return report
+}
+
+// --- Phase functions ---
+
+func phaseSetup(t spectest.T, adapter Adapter, scenario Scenario) (BrokerClient, *NameMapper, map[string]*spectest.ServiceHandle) {
+	t.Helper()
+	key := adapter.TransportKey()
+
 	broker := newBrokerClient(key, adapter.BrokerConfig())
 	spectest.RequireNotNil(t, broker, "no broker client for transport %q", key)
 	broker.Cleanup(t)
@@ -127,7 +245,6 @@ func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 		t.Logf("  %s -> %s", name, mapper.Runtime(name))
 	}
 
-	// Phase 2: Start all services with randomized names.
 	handles := make(map[string]*spectest.ServiceHandle)
 	for templateName, svcCfg := range scenario.Services {
 		runtimeName := mapper.Runtime(templateName)
@@ -137,7 +254,11 @@ func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 		handles[templateName] = h
 	}
 
-	// Phase 3: Assert topology.
+	return broker, mapper, handles
+}
+
+func phaseTopology(t spectest.T, key string, scenario Scenario, handles map[string]*spectest.ServiceHandle, mapper *NameMapper) {
+	t.Helper()
 	expectedEndpoints := ComputeExpectedEndpoints(key, scenario.Services, mapper)
 	for templateName, h := range handles {
 		expected, ok := expectedEndpoints[templateName]
@@ -149,8 +270,10 @@ func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 		spectest.RequireEqual(t, runtimeName, topo.ServiceName, "service name mismatch for %s", templateName)
 		spectest.AssertTopology(t, expected, topo)
 	}
+}
 
-	// Phase 4: Assert broker state.
+func phaseBrokerState(t spectest.T, key string, scenario Scenario, broker BrokerClient, mapper *NameMapper) {
+	t.Helper()
 	expectedBroker := ComputeExpectedBrokerState(key, scenario.Services, mapper)
 	actualBroker := broker.QueryState(t)
 	switch key {
@@ -159,13 +282,17 @@ func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 	case "nats":
 		spectest.AssertNATSBrokerState(t, expectedBroker.NATS, actualBroker.NATS)
 	}
+}
 
-	// Phase 5: Publish messages and assert delivery.
+func phaseDelivery(t spectest.T, scenario Scenario, handles map[string]*spectest.ServiceHandle, mapper *NameMapper) {
+	t.Helper()
 	for _, msg := range scenario.Messages {
 		publishAndAssert(t, msg, scenario.Services, handles, mapper)
 	}
+}
 
-	// Phase 6: Cross-validation probes.
+func phaseProbes(t spectest.T, key string, scenario Scenario, handles map[string]*spectest.ServiceHandle, broker BrokerClient, mapper *NameMapper) {
+	t.Helper()
 	for _, probe := range scenario.ProbeMessages {
 		target := ComputeProbeTarget(key, probe, scenario.Services, mapper)
 		switch probe.Direction {
