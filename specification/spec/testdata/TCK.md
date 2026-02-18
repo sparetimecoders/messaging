@@ -33,6 +33,9 @@ specification/spec/spectest/
   integration.go                        <- legacy runner (deprecated, superseded by tck/)
 
 golang/
+  tck-adapters/                         <- TCK adapter binaries (subprocess protocol)
+    cmd/nats-adapter/main.go            <- Reference NATS adapter binary
+    cmd/amqp-adapter/main.go            <- Reference AMQP adapter binary
   nats/integration_tck_test.go          <- Go NATS adapter (embedded server)
   amqp/integration_tck_test.go          <- Go AMQP adapter (real RabbitMQ)
 
@@ -208,7 +211,13 @@ cd specification/tck && go build -o tck-runner ./cmd/tck-runner/
 **Build an adapter** (e.g. the reference NATS adapter):
 
 ```bash
-cd golang/nats && go build -o nats-tck-adapter ./cmd/tck-adapter/
+cd golang/tck-adapters && go build -o nats-tck-adapter ./cmd/nats-adapter/
+```
+
+**Build the AMQP adapter:**
+
+```bash
+cd golang/tck-adapters && go build -o amqp-tck-adapter ./cmd/amqp-adapter/
 ```
 
 **Run it:**

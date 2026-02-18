@@ -3,6 +3,7 @@ go 1.24.0
 use (
 	./amqp
 	./nats
+	./tck-adapters
 	../demo/go
 	../specification/spec
 	../specification/tck

@@ -152,13 +152,12 @@ func TestIntegrationTCK(t *testing.T) {
 }
 
 func TestIntegrationTCKSubprocess(t *testing.T) {
-	// Build the tck-adapter binary.
+	// Build the nats-adapter binary from the tck-adapters module.
 	binDir := t.TempDir()
-	binPath := filepath.Join(binDir, "tck-adapter")
-	build := exec.Command("go", "build", "-o", binPath, "./cmd/tck-adapter")
-	build.Dir = "."
+	binPath := filepath.Join(binDir, "nats-adapter")
+	build := exec.Command("go", "build", "-o", binPath, "github.com/sparetimecoders/gomessaging/tck-adapters/cmd/nats-adapter")
 	out, err := build.CombinedOutput()
-	require.NoError(t, err, "failed to build tck-adapter: %s", out)
+	require.NoError(t, err, "failed to build nats-adapter: %s", out)
 
 	wt := spectest.WrapT(t)
 	scenarios := tck.LoadScenarios(wt, "../../specification/spec/testdata/tck.json")

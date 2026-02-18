@@ -196,4 +196,4 @@ func main() {
 }
 ```
 
-See `golang/nats/cmd/tck-adapter/main.go` for the reference NATS adapter implementation.
+See `golang/tck-adapters/cmd/nats-adapter/main.go` for the reference NATS adapter implementation, and `golang/tck-adapters/cmd/amqp-adapter/main.go` for the AMQP adapter.
