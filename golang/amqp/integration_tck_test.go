@@ -70,6 +70,7 @@ func (a *amqpIntegrationAdapter) StartService(t spectest.T, serviceName string, 
 		return nil
 	}
 
+	var conn *Connection
 	var setups []Setup
 	for _, intent := range intents {
 		switch {
@@ -77,6 +78,9 @@ func (a *amqpIntegrationAdapter) StartService(t spectest.T, serviceName string, 
 			pub := NewPublisher()
 			setups = append(setups, EventStreamPublisher(pub))
 			publishers[spectest.PublisherKey(intent)] = amqpPublishFunc(pub)
+
+		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral && intent.QueueSuffix != "":
+			setups = append(setups, EventStreamConsumer(intent.RoutingKey, captureHandler, AddQueueNameSuffix(intent.QueueSuffix)))
 
 		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
 			setups = append(setups, EventStreamConsumer(intent.RoutingKey, captureHandler))
@@ -106,12 +110,27 @@ func (a *amqpIntegrationAdapter) StartService(t spectest.T, serviceName string, 
 		case intent.Pattern == "service-response" && intent.Direction == "consume":
 			setups = append(setups, ServiceResponseConsumer[json.RawMessage](intent.TargetService, intent.RoutingKey, captureHandler))
 
+		case intent.Pattern == "service-response" && intent.Direction == "publish":
+			// service-response publish is handled via conn.PublishServiceResponse.
+			// Register a publisher that extracts the target from headers.
+			pk := spectest.PublisherKey(intent)
+			publishers[pk] = func(ctx context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error {
+				targetService := headers["_tckTargetService"]
+				return conn.PublishServiceResponse(ctx, targetService, routingKey, payload)
+			}
+
+		case intent.Pattern == "queue-publish" && intent.Direction == "publish":
+			pub := NewPublisher()
+			setups = append(setups, QueuePublisher(pub, intent.DestinationQueue))
+			publishers[spectest.PublisherKey(intent)] = amqpPublishFunc(pub)
+
 		default:
 			t.Fatalf("unsupported setup intent: pattern=%s direction=%s", intent.Pattern, intent.Direction)
 		}
 	}
 
-	conn, err := NewFromURL(serviceName, a.amqpURL)
+	var err error
+	conn, err = NewFromURL(serviceName, a.amqpURL)
 	spectest.RequireNoError(t, err)
 
 	err = conn.Start(context.Background(), setups...)

@@ -229,19 +229,15 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		}}
 
 	case intent.Pattern == "service-response" && intent.Direction == "publish":
-		return []spectest.ExpectedEndpoint{{
-			Direction:    "publish",
-			Pattern:      "service-response",
-			ExchangeName: spec.ServiceResponseExchangeName(runtimeService),
-			ExchangeKind: spec.KindHeaders,
-		}}
+		// PublishServiceResponse doesn't register an endpoint — the response
+		// exchange is declared by the consumer side. No topology entry expected.
+		return nil
 
 	case intent.Pattern == "queue-publish" && intent.Direction == "publish":
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "publish",
 			Pattern:      "queue-publish",
 			ExchangeName: "(default)",
-			ExchangeKind: spec.KindDirect,
 			QueueName:    intent.DestinationQueue,
 		}}
 
@@ -476,16 +472,12 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				})
 
 			case intent.Pattern == "service-response" && intent.Direction == "publish":
-				exName := spec.ServiceResponseExchangeName(runtimeName)
-				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindHeaders, Durable: true,
-				}
+				// PublishServiceResponse doesn't declare resources — the response
+				// exchange is declared by the consumer side.
 
 			case intent.Pattern == "queue-publish" && intent.Direction == "publish":
-				queues = append(queues, spectest.AMQPQueue{
-					Name: intent.DestinationQueue, Durable: true,
-					Arguments: spectest.QueueArguments{XQueueType: "quorum", XExpires: durableQueueExpiry},
-				})
+				// QueuePublisher doesn't declare the queue — it expects it to
+				// already exist. No broker state entry.
 
 			}
 		}

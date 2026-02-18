@@ -65,6 +65,7 @@ type MessageSpec struct {
 // The TCK triggers this after asserting the initial delivery.
 type ResponseMessage struct {
 	From               string             `json:"from"`
+	TargetService      string             `json:"targetService"`
 	RoutingKey         string             `json:"routingKey"`
 	Payload            json.RawMessage    `json:"payload"`
 	ExpectedDeliveries []ExpectedDelivery `json:"expectedDeliveries"`

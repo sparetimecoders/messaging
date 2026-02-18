@@ -303,13 +303,9 @@ func TestComputeExpectedEndpointsAMQPServiceResponsePublish(t *testing.T) {
 
 	endpoints := ComputeExpectedEndpoints("amqp", services, mapper)
 
+	// PublishServiceResponse doesn't register an endpoint — no topology entry.
 	taskEP := endpoints["task-svc"]
-	require.Len(t, taskEP, 1)
-
-	runtimeTask := mapper.Runtime("task-svc")
-	assert.Equal(t, "publish", taskEP[0].Direction)
-	assert.Equal(t, spec.ServiceResponseExchangeName(runtimeTask), taskEP[0].ExchangeName)
-	assert.Equal(t, spec.KindHeaders, taskEP[0].ExchangeKind)
+	assert.Empty(t, taskEP)
 }
 
 func TestComputeExpectedEndpointsAMQPQueuePublish(t *testing.T) {
@@ -327,7 +323,7 @@ func TestComputeExpectedEndpointsAMQPQueuePublish(t *testing.T) {
 	require.Len(t, senderEP, 1)
 	assert.Equal(t, "publish", senderEP[0].Direction)
 	assert.Equal(t, "(default)", senderEP[0].ExchangeName)
-	assert.Equal(t, spec.KindDirect, senderEP[0].ExchangeKind)
+	assert.Empty(t, senderEP[0].ExchangeKind)
 	assert.Equal(t, "task-queue", senderEP[0].QueueName)
 }
 
@@ -387,15 +383,9 @@ func TestComputeExpectedBrokerStateAMQPQueuePublish(t *testing.T) {
 
 	broker := ComputeExpectedBrokerState("amqp", services, mapper)
 
-	// No exchanges for queue-publish (uses default exchange).
+	// QueuePublisher doesn't declare any resources — queue must already exist.
 	assert.Empty(t, broker.AMQP.Exchanges)
-
-	// Queue should exist.
-	require.Len(t, broker.AMQP.Queues, 1)
-	assert.Equal(t, "task-queue", broker.AMQP.Queues[0].Name)
-	assert.True(t, broker.AMQP.Queues[0].Durable)
-
-	// No bindings for queue-publish.
+	assert.Empty(t, broker.AMQP.Queues)
 	assert.Empty(t, broker.AMQP.Bindings)
 }
 
@@ -410,14 +400,9 @@ func TestComputeExpectedBrokerStateAMQPServiceResponsePublish(t *testing.T) {
 
 	broker := ComputeExpectedBrokerState("amqp", services, mapper)
 
-	runtimeTask := mapper.Runtime("task-svc")
-	exName := spec.ServiceResponseExchangeName(runtimeTask)
-
-	require.Len(t, broker.AMQP.Exchanges, 1)
-	assert.Equal(t, exName, broker.AMQP.Exchanges[0].Name)
-	assert.Equal(t, "headers", broker.AMQP.Exchanges[0].Type)
-
-	// Publish-only — no queues or bindings.
+	// PublishServiceResponse doesn't declare resources — the response exchange
+	// is declared by the consumer side.
+	assert.Empty(t, broker.AMQP.Exchanges)
 	assert.Empty(t, broker.AMQP.Queues)
 	assert.Empty(t, broker.AMQP.Bindings)
 }

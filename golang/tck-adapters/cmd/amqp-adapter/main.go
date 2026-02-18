@@ -162,7 +162,10 @@ func (m *amqpServiceManager) StartService(serviceName string, intents []spectest
 		Publish: func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error {
 			// service-response publish uses Connection.PublishServiceResponse.
 			if strings.HasPrefix(publisherKey, "service-response:") {
-				targetService := strings.TrimPrefix(publisherKey, "service-response:")
+				targetService := headers["_tckTargetService"]
+				if targetService == "" {
+					targetService = strings.TrimPrefix(publisherKey, "service-response:")
+				}
 				return conn.PublishServiceResponse(context.Background(), targetService, routingKey, payload)
 			}
 			pub, ok := publishers[publisherKey]

@@ -484,7 +484,17 @@ func publishAndAssertResponse(t spectest.T, resp spectest.ResponseMessage, servi
 	payload, nonce := InjectNonce(resp.Payload)
 
 	pub := findPublisher(t, resp.From, services[resp.From], h)
-	err := pub(context.Background(), resp.RoutingKey, payload, nil)
+
+	// Pass the runtime target service name so the adapter knows where to
+	// route the response (e.g., AMQP headers exchange routing).
+	var headers map[string]string
+	if resp.TargetService != "" {
+		headers = map[string]string{
+			"_tckTargetService": mapper.Runtime(resp.TargetService),
+		}
+	}
+
+	err := pub(context.Background(), resp.RoutingKey, payload, headers)
 	spectest.RequireNoError(t, err, "response publish failed for %s/%s", resp.From, resp.RoutingKey)
 
 	matchedIndices := make(map[string]map[int]bool)
