@@ -173,7 +173,7 @@ func TestGenerateMarkdownAllCovered(t *testing.T) {
 	}
 
 	md := report.GenerateMarkdown()
-	assert.Contains(t, md, "**All 9 intent combinations covered.**")
+	assert.Contains(t, md, "**All 1 intent combinations covered.**")
 	assert.NotContains(t, md, "missing coverage")
 }
 
@@ -194,7 +194,7 @@ func TestGenerateMarkdownMissingCoverage(t *testing.T) {
 
 	md := report.GenerateMarkdown()
 	assert.Contains(t, md, "1 intent combination(s) missing coverage")
-	assert.NotContains(t, md, "All 9")
+	assert.NotContains(t, md, "All ")
 }
 
 func TestScenarioPatterns(t *testing.T) {

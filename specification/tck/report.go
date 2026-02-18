@@ -137,8 +137,9 @@ func (r *TCKReport) GenerateMarkdown() string {
 	}
 
 	b.WriteString("\n")
+	totalIntents := len(r.Coverage.Entries)
 	if len(r.Coverage.Missing) == 0 {
-		b.WriteString("**All 9 intent combinations covered.**\n")
+		fmt.Fprintf(&b, "**All %d intent combinations covered.**\n", totalIntents)
 	} else {
 		fmt.Fprintf(&b, "**%d intent combination(s) missing coverage.**\n", len(r.Coverage.Missing))
 	}

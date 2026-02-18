@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/sparetimecoders/gomessaging/nats"
@@ -85,6 +86,9 @@ func (m *natsServiceManager) StartService(serviceName string, intents []spectest
 			publishers[pk] = pub
 			publisherKeys = append(publisherKeys, pk)
 
+		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral && intent.QueueSuffix != "":
+			setups = append(setups, nats.EventStreamConsumer(intent.RoutingKey, captureHandler, nats.AddConsumerNameSuffix(intent.QueueSuffix)))
+
 		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
 			setups = append(setups, nats.EventStreamConsumer(intent.RoutingKey, captureHandler))
 
@@ -128,6 +132,11 @@ func (m *natsServiceManager) StartService(serviceName string, intents []spectest
 		case intent.Pattern == "service-response" && intent.Direction == "consume":
 			setups = append(setups, nats.ServiceResponseConsumer[json.RawMessage](intent.TargetService, intent.RoutingKey, captureHandler))
 
+		case intent.Pattern == "service-response" && intent.Direction == "publish":
+			// NATS service responses are sent via core NATS reply subject — no setup needed.
+			pk := spectest.PublisherKey(intent)
+			publisherKeys = append(publisherKeys, pk)
+
 		default:
 			return nil, fmt.Errorf("unsupported intent: pattern=%s direction=%s", intent.Pattern, intent.Direction)
 		}
@@ -145,12 +154,20 @@ func (m *natsServiceManager) StartService(serviceName string, intents []spectest
 	return &adapterutil.ServiceState{
 		Topology:      conn.Topology(),
 		PublisherKeys: publisherKeys,
-		Publish: func(publisherKey, routingKey string, payload json.RawMessage) error {
+		Publish: func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error {
+			// service-response publish: NATS handles via reply subject, no-op.
+			if strings.HasPrefix(publisherKey, "service-response:") {
+				return nil
+			}
 			pub, ok := publishers[publisherKey]
 			if !ok {
 				return fmt.Errorf("unknown publisher key: %s", publisherKey)
 			}
-			return pub.Publish(context.Background(), routingKey, payload)
+			var hdrs []nats.Header
+			for k, v := range headers {
+				hdrs = append(hdrs, nats.Header{Key: k, Value: v})
+			}
+			return pub.Publish(context.Background(), routingKey, payload, hdrs...)
 		},
 		Received: func() []tck.ReceivedMessageWire {
 			mu.Lock()

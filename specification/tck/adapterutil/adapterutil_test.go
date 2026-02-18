@@ -60,7 +60,7 @@ func (m *mockManager) StartService(serviceName string, intents []spectest.SetupI
 			}},
 		},
 		PublisherKeys: pubKeys,
-		Publish: func(publisherKey, routingKey string, payload json.RawMessage) error {
+		Publish: func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error {
 			received = append(received, tck.ReceivedMessageWire{
 				RoutingKey: routingKey,
 				Payload:    payload,
@@ -239,7 +239,7 @@ func (m *closingManager) StartService(serviceName string, intents []spectest.Set
 	return &ServiceState{
 		Topology:      spec.Topology{ServiceName: serviceName},
 		PublisherKeys: nil,
-		Publish:       func(_, _ string, _ json.RawMessage) error { return nil },
+		Publish:       func(_, _ string, _ json.RawMessage, _ map[string]string) error { return nil },
 		Received:      func() []tck.ReceivedMessageWire { return nil },
 		Close: func() error {
 			m.onClose()

@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/sparetimecoders/gomessaging/spec/spectest"
@@ -46,6 +47,7 @@ type Adapter interface {
 // broker state, or rawTarget — those are computed at runtime.
 type Scenario struct {
 	Name          string                            `json:"name"`
+	Transports    []string                          `json:"transports,omitempty"`
 	Services      map[string]spectest.ServiceConfig `json:"services"`
 	Messages      []spectest.MessageSpec            `json:"messages"`
 	ProbeMessages []ProbeMessage                    `json:"probeMessages,omitempty"`
@@ -98,7 +100,12 @@ func LoadScenarios(t spectest.T, fixturePath string) []Scenario {
 func RunTCK(t spectest.T, fixturePath string, adapter Adapter) {
 	t.Helper()
 	scenarios := LoadScenarios(t, fixturePath)
+	key := adapter.TransportKey()
 	for _, scenario := range scenarios {
+		if len(scenario.Transports) > 0 && !slices.Contains(scenario.Transports, key) {
+			t.Logf("skipping scenario %q (transport %s not in %v)", scenario.Name, key, scenario.Transports)
+			continue
+		}
 		t.Run(scenario.Name, func(t spectest.T) {
 			RunScenario(t, adapter, scenario)
 		})
@@ -110,6 +117,11 @@ func RunTCK(t spectest.T, fixturePath string, adapter Adapter) {
 func RunScenario(t spectest.T, adapter Adapter, scenario Scenario) {
 	t.Helper()
 	key := adapter.TransportKey()
+
+	if len(scenario.Transports) > 0 && !slices.Contains(scenario.Transports, key) {
+		t.Logf("skipping scenario %q (transport %s not in %v)", scenario.Name, key, scenario.Transports)
+		return
+	}
 
 	broker, mapper, handles := phaseSetup(t, adapter, scenario)
 	phaseTopology(t, key, scenario, handles, mapper)
@@ -200,13 +212,20 @@ func RunScenarioWithReport(t spectest.T, adapter Adapter, scenario Scenario) Sce
 func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKReport {
 	t.Helper()
 	scenarios := LoadScenarios(t, fixturePath)
+	key := adapter.TransportKey()
 
 	report := &TCKReport{
-		TransportKey: adapter.TransportKey(),
+		TransportKey: key,
 		Timestamp:    time.Now(),
 	}
 
+	var runScenarios []Scenario
 	for _, scenario := range scenarios {
+		if len(scenario.Transports) > 0 && !slices.Contains(scenario.Transports, key) {
+			t.Logf("skipping scenario %q (transport %s not in %v)", scenario.Name, key, scenario.Transports)
+			continue
+		}
+		runScenarios = append(runScenarios, scenario)
 		s := scenario
 		t.Run(s.Name, func(t spectest.T) {
 			sr := RunScenarioWithReport(t, adapter, s)
@@ -220,7 +239,7 @@ func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKRep
 		})
 	}
 
-	report.Coverage = ComputeCoverageMatrix(scenarios)
+	report.Coverage = ComputeCoverageMatrix(runScenarios)
 	return report
 }
 
@@ -315,15 +334,22 @@ func publishAndAssert(t spectest.T, msg spectest.MessageSpec, services map[strin
 	payload, nonce := InjectNonce(msg.Payload)
 
 	pub := findPublisher(t, msg.From, services[msg.From], h)
-	err := pub(context.Background(), msg.RoutingKey, payload)
+	err := pub(context.Background(), msg.RoutingKey, payload, msg.CustomHeaders)
 	spectest.RequireNoError(t, err, "publish failed for %s/%s", msg.From, msg.RoutingKey)
 
+	// Track matched message indices per service to support multi-delivery.
+	matchedIndices := make(map[string]map[int]bool)
 	for _, delivery := range msg.ExpectedDeliveries {
-		assertDelivery(t, delivery, handles, mapper, nonce)
+		assertDelivery(t, delivery, handles, mapper, nonce, matchedIndices)
 	}
 
 	for _, unexpected := range msg.UnexpectedDeliveries {
 		assertNoDelivery(t, unexpected, handles)
+	}
+
+	// Process response messages (round-trip flow).
+	for _, resp := range msg.ResponseMessages {
+		publishAndAssertResponse(t, resp, services, handles, mapper)
 	}
 }
 
@@ -346,16 +372,24 @@ func findPublisher(t spectest.T, svcName string, svcCfg spectest.ServiceConfig, 
 	return nil
 }
 
-func assertDelivery(t spectest.T, delivery spectest.ExpectedDelivery, handles map[string]*spectest.ServiceHandle, mapper *NameMapper, nonce string) {
+func assertDelivery(t spectest.T, delivery spectest.ExpectedDelivery, handles map[string]*spectest.ServiceHandle, mapper *NameMapper, nonce string, matchedIndices map[string]map[int]bool) {
 	t.Helper()
 
 	th, ok := handles[delivery.To]
 	spectest.RequireTrue(t, ok, "target service %q not found", delivery.To)
 
-	// Wait for delivery with matching type.
+	if matchedIndices[delivery.To] == nil {
+		matchedIndices[delivery.To] = make(map[int]bool)
+	}
+	excluded := matchedIndices[delivery.To]
+
+	// Wait for delivery with matching nonce that hasn't been matched yet.
 	spectest.AssertEventually(t, func() bool {
-		for _, rm := range th.Received() {
-			if rm.Metadata.Type == delivery.Metadata.Type {
+		for i, rm := range th.Received() {
+			if excluded[i] {
+				continue
+			}
+			if rm.Metadata.Type == delivery.Metadata.Type && hasNonce(rm.Payload, nonce) {
 				return true
 			}
 		}
@@ -364,15 +398,21 @@ func assertDelivery(t spectest.T, delivery spectest.ExpectedDelivery, handles ma
 		"expected delivery to %s with type %s", delivery.To, delivery.Metadata.Type)
 
 	var matched *spectest.ReceivedMessage
-	for _, rm := range th.Received() {
-		if rm.Metadata.Type == delivery.Metadata.Type {
+	var matchedIdx int
+	for i, rm := range th.Received() {
+		if excluded[i] {
+			continue
+		}
+		if rm.Metadata.Type == delivery.Metadata.Type && hasNonce(rm.Payload, nonce) {
 			matched = &rm
+			matchedIdx = i
 			break
 		}
 	}
 	if matched == nil {
 		return
 	}
+	excluded[matchedIdx] = true
 
 	// Assert metadata with name mapping.
 	if delivery.Metadata.Type != "" {
@@ -396,6 +436,11 @@ func assertDelivery(t spectest.T, delivery spectest.ExpectedDelivery, handles ma
 	// Assert original payload fields.
 	if len(delivery.PayloadMatch) > 0 {
 		assertPayloadMatch(t, delivery.To, matched.Payload, delivery.PayloadMatch)
+	}
+
+	// Assert custom headers.
+	if len(delivery.HeaderMatch) > 0 {
+		assertHeaderMatch(t, delivery.To, matched.Info.Headers, delivery.HeaderMatch)
 	}
 
 	// Assert nonce.
@@ -429,6 +474,35 @@ func assertPayloadMatch(t spectest.T, target string, actual, expected json.RawMe
 	}
 }
 
+func publishAndAssertResponse(t spectest.T, resp spectest.ResponseMessage, services map[string]spectest.ServiceConfig, handles map[string]*spectest.ServiceHandle, mapper *NameMapper) {
+	t.Helper()
+
+	h, ok := handles[resp.From]
+	spectest.RequireTrue(t, ok, "response service %q not found in handles", resp.From)
+	spectest.RequireNotEmpty(t, h.Publishers, "response service %q has no publishers", resp.From)
+
+	payload, nonce := InjectNonce(resp.Payload)
+
+	pub := findPublisher(t, resp.From, services[resp.From], h)
+	err := pub(context.Background(), resp.RoutingKey, payload, nil)
+	spectest.RequireNoError(t, err, "response publish failed for %s/%s", resp.From, resp.RoutingKey)
+
+	matchedIndices := make(map[string]map[int]bool)
+	for _, delivery := range resp.ExpectedDeliveries {
+		assertDelivery(t, delivery, handles, mapper, nonce, matchedIndices)
+	}
+}
+
+func assertHeaderMatch(t spectest.T, target string, headers map[string]any, expected map[string]string) {
+	t.Helper()
+	for k, v := range expected {
+		actual, ok := headers[k]
+		spectest.RequireTrue(t, ok, "header %q not found in delivery to %s", k, target)
+		spectest.AssertEqual(t, v, fmt.Sprintf("%v", actual),
+			"header %q mismatch for delivery to %s", k, target)
+	}
+}
+
 func assertNonce(t spectest.T, target string, payload json.RawMessage, expectedNonce string) {
 	t.Helper()
 	var obj map[string]any
@@ -454,7 +528,7 @@ func runOutboundProbe(t spectest.T, probe ProbeMessage, target spectest.ProbeTar
 	h, ok := handles[probe.PublishVia]
 	spectest.RequireTrue(t, ok, "outbound probe: service %q not in handles", probe.PublishVia)
 	pub := findPublisher(t, probe.PublishVia, services[probe.PublishVia], h)
-	err := pub(context.Background(), probe.RoutingKey, payload)
+	err := pub(context.Background(), probe.RoutingKey, payload, nil)
 	spectest.RequireNoError(t, err, "outbound probe: publish failed for %s/%s", probe.PublishVia, probe.RoutingKey)
 
 	// Read raw message from broker.

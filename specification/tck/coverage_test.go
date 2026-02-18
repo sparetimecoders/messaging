@@ -32,7 +32,7 @@ import (
 
 func TestAllSupportedIntents(t *testing.T) {
 	intents := AllSupportedIntents()
-	assert.Len(t, intents, 9)
+	assert.Len(t, intents, 11)
 
 	// Verify no duplicates.
 	seen := make(map[IntentKey]bool)
@@ -48,7 +48,7 @@ func TestComputeCoverageMatrixFullCoverage(t *testing.T) {
 
 	matrix := ComputeCoverageMatrix(scenarios)
 	assert.Empty(t, matrix.Missing, "expected all intents covered, missing: %v", matrix.Missing)
-	assert.Len(t, matrix.Entries, 9)
+	assert.Len(t, matrix.Entries, 11)
 
 	// Every entry should have at least one scenario.
 	for _, entry := range matrix.Entries {
@@ -69,7 +69,7 @@ func TestComputeCoverageMatrixPartialCoverage(t *testing.T) {
 	}
 
 	matrix := ComputeCoverageMatrix(scenarios)
-	require.Len(t, matrix.Missing, 7)
+	require.Len(t, matrix.Missing, 9)
 
 	// event-stream publish and consume are covered.
 	for _, entry := range matrix.Entries {

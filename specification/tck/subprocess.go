@@ -134,8 +134,8 @@ func (a *SubprocessAdapter) StartService(t spectest.T, serviceName string, inten
 	publisherKeys := make(map[string]spectest.PublishFunc, len(result.PublisherKeys))
 	for _, key := range result.PublisherKeys {
 		pk := key // capture
-		publisherKeys[pk] = func(_ context.Context, routingKey string, payload json.RawMessage) error {
-			return a.publish(t, serviceName, pk, routingKey, payload)
+		publisherKeys[pk] = func(_ context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error {
+			return a.publish(t, serviceName, pk, routingKey, payload, headers)
 		}
 	}
 
@@ -167,13 +167,14 @@ func (a *SubprocessAdapter) hello(t spectest.T) {
 	a.brokerCfg = result.BrokerConfig
 }
 
-func (a *SubprocessAdapter) publish(t spectest.T, serviceName, publisherKey, routingKey string, payload json.RawMessage) error {
+func (a *SubprocessAdapter) publish(t spectest.T, serviceName, publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error {
 	t.Helper()
 	params := PublishParams{
 		ServiceName:  serviceName,
 		PublisherKey: publisherKey,
 		RoutingKey:   routingKey,
 		Payload:      payload,
+		Headers:      headers,
 	}
 	a.call(t, "publish", params, nil, commandTimeout)
 	return nil

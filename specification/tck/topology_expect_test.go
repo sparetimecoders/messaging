@@ -247,6 +247,181 @@ func TestComputeExpectedBrokerStateServiceRequest(t *testing.T) {
 	assert.True(t, foundRespQueue, "response queue %s not found", respQName)
 }
 
+func TestComputeExpectedEndpointsAMQPSuffix(t *testing.T) {
+	mapper := NewNameMapper([]string{"orders", "backend"})
+
+	services := map[string]spectest.ServiceConfig{
+		"orders": {Setups: []spectest.SetupIntent{{Pattern: "event-stream", Direction: "publish"}}},
+		"backend": {Setups: []spectest.SetupIntent{
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reminders"},
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reporting"},
+		}},
+	}
+
+	endpoints := ComputeExpectedEndpoints("amqp", services, mapper)
+
+	backendEP := endpoints["backend"]
+	require.Len(t, backendEP, 2)
+
+	runtimeBackend := mapper.Runtime("backend")
+	exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+	baseQueue := spec.ServiceEventQueueName(exName, runtimeBackend)
+
+	assert.Equal(t, baseQueue+"-reminders", backendEP[0].QueueName)
+	assert.Equal(t, baseQueue+"-reporting", backendEP[1].QueueName)
+}
+
+func TestComputeExpectedEndpointsNATSSuffix(t *testing.T) {
+	mapper := NewNameMapper([]string{"orders", "backend"})
+
+	services := map[string]spectest.ServiceConfig{
+		"orders": {Setups: []spectest.SetupIntent{{Pattern: "event-stream", Direction: "publish"}}},
+		"backend": {Setups: []spectest.SetupIntent{
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reminders"},
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reporting"},
+		}},
+	}
+
+	endpoints := ComputeExpectedEndpoints("nats", services, mapper)
+
+	backendEP := endpoints["backend"]
+	require.Len(t, backendEP, 2)
+
+	runtimeBackend := mapper.Runtime("backend")
+	assert.Equal(t, runtimeBackend+"-reminders", backendEP[0].QueueName)
+	assert.Equal(t, runtimeBackend+"-reporting", backendEP[1].QueueName)
+}
+
+func TestComputeExpectedEndpointsAMQPServiceResponsePublish(t *testing.T) {
+	mapper := NewNameMapper([]string{"task-svc"})
+
+	services := map[string]spectest.ServiceConfig{
+		"task-svc": {Setups: []spectest.SetupIntent{
+			{Pattern: "service-response", Direction: "publish"},
+		}},
+	}
+
+	endpoints := ComputeExpectedEndpoints("amqp", services, mapper)
+
+	taskEP := endpoints["task-svc"]
+	require.Len(t, taskEP, 1)
+
+	runtimeTask := mapper.Runtime("task-svc")
+	assert.Equal(t, "publish", taskEP[0].Direction)
+	assert.Equal(t, spec.ServiceResponseExchangeName(runtimeTask), taskEP[0].ExchangeName)
+	assert.Equal(t, spec.KindHeaders, taskEP[0].ExchangeKind)
+}
+
+func TestComputeExpectedEndpointsAMQPQueuePublish(t *testing.T) {
+	mapper := NewNameMapper([]string{"sender"})
+
+	services := map[string]spectest.ServiceConfig{
+		"sender": {Setups: []spectest.SetupIntent{
+			{Pattern: "queue-publish", Direction: "publish", DestinationQueue: "task-queue"},
+		}},
+	}
+
+	endpoints := ComputeExpectedEndpoints("amqp", services, mapper)
+
+	senderEP := endpoints["sender"]
+	require.Len(t, senderEP, 1)
+	assert.Equal(t, "publish", senderEP[0].Direction)
+	assert.Equal(t, "(default)", senderEP[0].ExchangeName)
+	assert.Equal(t, spec.KindDirect, senderEP[0].ExchangeKind)
+	assert.Equal(t, "task-queue", senderEP[0].QueueName)
+}
+
+func TestComputeExpectedBrokerStateAMQPSuffix(t *testing.T) {
+	mapper := NewNameMapper([]string{"orders", "backend"})
+
+	services := map[string]spectest.ServiceConfig{
+		"orders": {Setups: []spectest.SetupIntent{{Pattern: "event-stream", Direction: "publish"}}},
+		"backend": {Setups: []spectest.SetupIntent{
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reminders"},
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reporting"},
+		}},
+	}
+
+	broker := ComputeExpectedBrokerState("amqp", services, mapper)
+
+	runtimeBackend := mapper.Runtime("backend")
+	exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+	baseQueue := spec.ServiceEventQueueName(exName, runtimeBackend)
+
+	require.Len(t, broker.AMQP.Queues, 2)
+	queueNames := []string{broker.AMQP.Queues[0].Name, broker.AMQP.Queues[1].Name}
+	assert.Contains(t, queueNames, baseQueue+"-reminders")
+	assert.Contains(t, queueNames, baseQueue+"-reporting")
+
+	require.Len(t, broker.AMQP.Bindings, 2)
+}
+
+func TestComputeExpectedBrokerStateNATSSuffix(t *testing.T) {
+	mapper := NewNameMapper([]string{"orders", "backend"})
+
+	services := map[string]spectest.ServiceConfig{
+		"orders": {Setups: []spectest.SetupIntent{{Pattern: "event-stream", Direction: "publish"}}},
+		"backend": {Setups: []spectest.SetupIntent{
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reminders"},
+			{Pattern: "event-stream", Direction: "consume", RoutingKey: "Order.Created", QueueSuffix: "reporting"},
+		}},
+	}
+
+	broker := ComputeExpectedBrokerState("nats", services, mapper)
+
+	runtimeBackend := mapper.Runtime("backend")
+	require.Len(t, broker.NATS.Consumers, 2)
+	durables := []string{broker.NATS.Consumers[0].Durable, broker.NATS.Consumers[1].Durable}
+	assert.Contains(t, durables, runtimeBackend+"-reminders")
+	assert.Contains(t, durables, runtimeBackend+"-reporting")
+}
+
+func TestComputeExpectedBrokerStateAMQPQueuePublish(t *testing.T) {
+	mapper := NewNameMapper([]string{"sender"})
+
+	services := map[string]spectest.ServiceConfig{
+		"sender": {Setups: []spectest.SetupIntent{
+			{Pattern: "queue-publish", Direction: "publish", DestinationQueue: "task-queue"},
+		}},
+	}
+
+	broker := ComputeExpectedBrokerState("amqp", services, mapper)
+
+	// No exchanges for queue-publish (uses default exchange).
+	assert.Empty(t, broker.AMQP.Exchanges)
+
+	// Queue should exist.
+	require.Len(t, broker.AMQP.Queues, 1)
+	assert.Equal(t, "task-queue", broker.AMQP.Queues[0].Name)
+	assert.True(t, broker.AMQP.Queues[0].Durable)
+
+	// No bindings for queue-publish.
+	assert.Empty(t, broker.AMQP.Bindings)
+}
+
+func TestComputeExpectedBrokerStateAMQPServiceResponsePublish(t *testing.T) {
+	mapper := NewNameMapper([]string{"task-svc"})
+
+	services := map[string]spectest.ServiceConfig{
+		"task-svc": {Setups: []spectest.SetupIntent{
+			{Pattern: "service-response", Direction: "publish"},
+		}},
+	}
+
+	broker := ComputeExpectedBrokerState("amqp", services, mapper)
+
+	runtimeTask := mapper.Runtime("task-svc")
+	exName := spec.ServiceResponseExchangeName(runtimeTask)
+
+	require.Len(t, broker.AMQP.Exchanges, 1)
+	assert.Equal(t, exName, broker.AMQP.Exchanges[0].Name)
+	assert.Equal(t, "headers", broker.AMQP.Exchanges[0].Type)
+
+	// Publish-only — no queues or bindings.
+	assert.Empty(t, broker.AMQP.Queues)
+	assert.Empty(t, broker.AMQP.Bindings)
+}
+
 func TestComputeProbeTarget(t *testing.T) {
 	mapper := NewNameMapper([]string{"orders", "notifications"})
 

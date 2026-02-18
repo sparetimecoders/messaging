@@ -36,12 +36,14 @@ import (
 
 // SetupIntent describes a transport-agnostic setup action from the fixture file.
 type SetupIntent struct {
-	Pattern       string `json:"pattern"`
-	Direction     string `json:"direction"`
-	RoutingKey    string `json:"routingKey,omitempty"`
-	Exchange      string `json:"exchange,omitempty"`
-	TargetService string `json:"targetService,omitempty"`
-	Ephemeral     bool   `json:"ephemeral,omitempty"`
+	Pattern          string `json:"pattern"`
+	Direction        string `json:"direction"`
+	RoutingKey       string `json:"routingKey,omitempty"`
+	Exchange         string `json:"exchange,omitempty"`
+	TargetService    string `json:"targetService,omitempty"`
+	Ephemeral        bool   `json:"ephemeral,omitempty"`
+	QueueSuffix      string `json:"queueSuffix,omitempty"`
+	DestinationQueue string `json:"destinationQueue,omitempty"`
 }
 
 // ExpectedEndpoint describes expected endpoint fields from the fixture file.
@@ -174,25 +176,25 @@ func RequireEndpointMatch(t T, expected ExpectedEndpoint, actuals []spec.Endpoin
 			expected.RoutingKey != actual.RoutingKey {
 			continue
 		}
+		// When expected specifies a QueueName, use it as a match filter to
+		// distinguish endpoints with the same direction/pattern/exchange/routingKey
+		// but different queue names (e.g., suffix consumers).
+		if expected.QueueName != "" && expected.QueueName != actual.QueueName {
+			continue
+		}
+		if expected.QueueNamePrefix != "" && !strings.HasPrefix(actual.QueueName, expected.QueueNamePrefix) {
+			continue
+		}
 		if spec.ExchangeKind(expected.ExchangeKind) != actual.ExchangeKind {
 			t.Errorf("exchangeKind mismatch: got %q, want %q", actual.ExchangeKind, expected.ExchangeKind)
 		}
 		if expected.Ephemeral != actual.Ephemeral {
 			t.Errorf("ephemeral mismatch: got %v, want %v", actual.Ephemeral, expected.Ephemeral)
 		}
-		if expected.QueueName != "" {
-			if expected.QueueName != actual.QueueName {
-				t.Errorf("queueName mismatch: got %q, want %q", actual.QueueName, expected.QueueName)
-			}
-		} else if expected.QueueNamePrefix != "" {
-			if !strings.HasPrefix(actual.QueueName, expected.QueueNamePrefix) {
-				t.Errorf("queueName %q should have prefix %q", actual.QueueName, expected.QueueNamePrefix)
-			}
-		}
 		return
 	}
-	t.Errorf("no matching endpoint found: direction=%s pattern=%s exchange=%s routingKey=%s",
-		expected.Direction, expected.Pattern, expected.ExchangeName, expected.RoutingKey)
+	t.Errorf("no matching endpoint found: direction=%s pattern=%s exchange=%s routingKey=%s queueName=%s",
+		expected.Direction, expected.Pattern, expected.ExchangeName, expected.RoutingKey, expected.QueueName)
 }
 
 // AssertAMQPBrokerState verifies that actual AMQP broker state matches expected.

@@ -75,6 +75,9 @@ func (a *natsIntegrationAdapter) StartService(t spectest.T, serviceName string, 
 			setups = append(setups, EventStreamPublisher(pub))
 			publishers[spectest.PublisherKey(intent)] = publishFunc(pub)
 
+		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral && intent.QueueSuffix != "":
+			setups = append(setups, EventStreamConsumer(intent.RoutingKey, captureHandler, AddConsumerNameSuffix(intent.QueueSuffix)))
+
 		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
 			setups = append(setups, EventStreamConsumer(intent.RoutingKey, captureHandler))
 
@@ -113,6 +116,15 @@ func (a *natsIntegrationAdapter) StartService(t spectest.T, serviceName string, 
 
 		case intent.Pattern == "service-response" && intent.Direction == "consume":
 			setups = append(setups, ServiceResponseConsumer[json.RawMessage](intent.TargetService, intent.RoutingKey, captureHandler))
+
+		case intent.Pattern == "service-response" && intent.Direction == "publish":
+			// NATS service responses are sent via core NATS reply subject.
+			// The publisher key is registered but no setup is needed.
+			pk := spectest.PublisherKey(intent)
+			publishers[pk] = func(ctx context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error {
+				// No-op: NATS request-reply handles responses via reply subject.
+				return nil
+			}
 
 		default:
 			t.Fatalf("unsupported setup intent: pattern=%s direction=%s", intent.Pattern, intent.Direction)
@@ -174,7 +186,11 @@ func TestIntegrationTCKSubprocess(t *testing.T) {
 }
 
 func publishFunc(pub *Publisher) spectest.PublishFunc {
-	return func(ctx context.Context, routingKey string, payload json.RawMessage) error {
-		return pub.Publish(ctx, routingKey, payload)
+	return func(ctx context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error {
+		var hdrs []Header
+		for k, v := range headers {
+			hdrs = append(hdrs, Header{Key: k, Value: v})
+		}
+		return pub.Publish(ctx, routingKey, payload, hdrs...)
 	}
 }

@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/sparetimecoders/gomessaging/amqp"
@@ -94,6 +95,9 @@ func (m *amqpServiceManager) StartService(serviceName string, intents []spectest
 			publishers[pk] = pub
 			publisherKeys = append(publisherKeys, pk)
 
+		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral && intent.QueueSuffix != "":
+			setups = append(setups, amqp.EventStreamConsumer(intent.RoutingKey, captureHandler, amqp.AddQueueNameSuffix(intent.QueueSuffix)))
+
 		case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
 			setups = append(setups, amqp.EventStreamConsumer(intent.RoutingKey, captureHandler))
 
@@ -126,6 +130,18 @@ func (m *amqpServiceManager) StartService(serviceName string, intents []spectest
 		case intent.Pattern == "service-response" && intent.Direction == "consume":
 			setups = append(setups, amqp.ServiceResponseConsumer[json.RawMessage](intent.TargetService, intent.RoutingKey, captureHandler))
 
+		case intent.Pattern == "service-response" && intent.Direction == "publish":
+			// service-response publish is handled via conn.PublishServiceResponse below.
+			pk := spectest.PublisherKey(intent)
+			publisherKeys = append(publisherKeys, pk)
+
+		case intent.Pattern == "queue-publish" && intent.Direction == "publish":
+			pub := amqp.NewPublisher()
+			setups = append(setups, amqp.QueuePublisher(pub, intent.DestinationQueue))
+			pk := spectest.PublisherKey(intent)
+			publishers[pk] = pub
+			publisherKeys = append(publisherKeys, pk)
+
 		default:
 			return nil, fmt.Errorf("unsupported intent: pattern=%s direction=%s", intent.Pattern, intent.Direction)
 		}
@@ -143,12 +159,21 @@ func (m *amqpServiceManager) StartService(serviceName string, intents []spectest
 	return &adapterutil.ServiceState{
 		Topology:      conn.Topology(),
 		PublisherKeys: publisherKeys,
-		Publish: func(publisherKey, routingKey string, payload json.RawMessage) error {
+		Publish: func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error {
+			// service-response publish uses Connection.PublishServiceResponse.
+			if strings.HasPrefix(publisherKey, "service-response:") {
+				targetService := strings.TrimPrefix(publisherKey, "service-response:")
+				return conn.PublishServiceResponse(context.Background(), targetService, routingKey, payload)
+			}
 			pub, ok := publishers[publisherKey]
 			if !ok {
 				return fmt.Errorf("unknown publisher key: %s", publisherKey)
 			}
-			return pub.Publish(context.Background(), routingKey, payload)
+			var hdrs []amqp.Header
+			for k, v := range headers {
+				hdrs = append(hdrs, amqp.Header{Key: k, Value: v})
+			}
+			return pub.Publish(context.Background(), routingKey, payload, hdrs...)
 		},
 		Received: func() []tck.ReceivedMessageWire {
 			mu.Lock()

@@ -248,6 +248,171 @@
           "payloadMatch": {"probeId":"telemetry-in-1","_tckInjected":true}
         }
       ]
+    },
+    {
+      "name": "queue suffix multiple consumers",
+      "services": {
+        "orders":  { "setups": [{"pattern":"event-stream","direction":"publish"}] },
+        "backend": { "setups": [
+          {"pattern":"event-stream","direction":"consume","routingKey":"Order.Created","queueSuffix":"reminders"},
+          {"pattern":"event-stream","direction":"consume","routingKey":"Order.Created","queueSuffix":"reporting"}
+        ]}
+      },
+      "messages": [
+        {
+          "from": "orders",
+          "routingKey": "Order.Created",
+          "payload": {"orderId":"suffix-1","amount":100},
+          "expectedDeliveries": [
+            {"to":"backend","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"suffix-1"}},
+            {"to":"backend","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"suffix-1"}}
+          ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "orders",
+          "routingKey": "Probe.SuffixOut",
+          "payload": {"probeId":"suffix-out-1"},
+          "ceAttributes": {"type":"Probe.SuffixOut","source":"orders","specversion":"1.0"},
+          "payloadMatch": {"probeId":"suffix-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "backend",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"suffix-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"suffix-in-1","_tckInjected":true}
+        }
+      ]
+    },
+    {
+      "name": "wildcard catch-all routing",
+      "services": {
+        "orders":   { "setups": [{"pattern":"event-stream","direction":"publish"}] },
+        "payments": { "setups": [{"pattern":"event-stream","direction":"publish"}] },
+        "readview": { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"#"}] }
+      },
+      "messages": [
+        {
+          "from": "orders",
+          "routingKey": "Order.Created",
+          "payload": {"orderId":"catchall-1"},
+          "expectedDeliveries": [
+            {"to":"readview","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"catchall-1"}}
+          ]
+        },
+        {
+          "from": "payments",
+          "routingKey": "Payment.Processed",
+          "payload": {"paymentId":"catchall-2"},
+          "expectedDeliveries": [
+            {"to":"readview","metadata":{"type":"Payment.Processed","source":"payments","specVersion":"1.0"},"payloadMatch":{"paymentId":"catchall-2"}}
+          ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "readview",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"catchall-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"catchall-in-1","_tckInjected":true}
+        }
+      ]
+    },
+    {
+      "name": "service request-response round trip",
+      "transports": ["amqp"],
+      "services": {
+        "task-svc":  { "setups": [
+          {"pattern":"service-request","direction":"consume","routingKey":"task.execute"},
+          {"pattern":"service-response","direction":"publish"}
+        ]},
+        "scheduler": { "setups": [
+          {"pattern":"service-request","direction":"publish","targetService":"task-svc"},
+          {"pattern":"service-response","direction":"consume","targetService":"task-svc","routingKey":"task.execute"}
+        ]}
+      },
+      "messages": [
+        {
+          "from": "scheduler",
+          "routingKey": "task.execute",
+          "payload": {"taskId":"rt-1","action":"run"},
+          "expectedDeliveries": [
+            {"to":"task-svc","metadata":{"type":"task.execute","source":"scheduler","specVersion":"1.0"},"payloadMatch":{"taskId":"rt-1"}}
+          ],
+          "responseMessages": [
+            {
+              "from": "task-svc",
+              "routingKey": "task.execute",
+              "payload": {"taskId":"rt-1","status":"completed"},
+              "expectedDeliveries": [
+                {"to":"scheduler","metadata":{"type":"task.execute","source":"task-svc","specVersion":"1.0"},"payloadMatch":{"status":"completed"}}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "custom headers propagation",
+      "services": {
+        "scheduler": { "setups": [{"pattern":"event-stream","direction":"publish"}] },
+        "worker":    { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Task.Scheduled"}] }
+      },
+      "messages": [
+        {
+          "from": "scheduler",
+          "routingKey": "Task.Scheduled",
+          "payload": {"taskId":"hdr-1","priority":"high"},
+          "customHeaders": {"x-delay-until":"2026-03-01T00:00:00Z","x-priority":"high"},
+          "expectedDeliveries": [
+            {
+              "to":"worker",
+              "metadata":{"type":"Task.Scheduled","source":"scheduler","specVersion":"1.0"},
+              "payloadMatch":{"taskId":"hdr-1"},
+              "headerMatch":{"x-delay-until":"2026-03-01T00:00:00Z","x-priority":"high"}
+            }
+          ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "scheduler",
+          "routingKey": "Probe.HeaderOut",
+          "payload": {"probeId":"hdr-out-1"},
+          "ceAttributes": {"type":"Probe.HeaderOut","source":"scheduler","specversion":"1.0"},
+          "payloadMatch": {"probeId":"hdr-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "worker",
+          "routingKey": "Task.Scheduled",
+          "payload": {"probeId":"hdr-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Task.Scheduled","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"hdr-in-1","_tckInjected":true}
+        }
+      ]
+    },
+    {
+      "name": "queue publish sender-selected distribution",
+      "transports": ["amqp"],
+      "services": {
+        "sender":   { "setups": [{"pattern":"queue-publish","direction":"publish","destinationQueue":"task-queue"}] }
+      },
+      "messages": [
+        {
+          "from": "sender",
+          "routingKey": "task-queue",
+          "payload": {"taskId":"qp-1","action":"process"},
+          "expectedDeliveries": []
+        }
+      ]
     }
   ]
 }

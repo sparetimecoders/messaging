@@ -86,10 +86,11 @@ type StartServiceResult struct {
 
 // PublishParams requests the adapter to publish a message.
 type PublishParams struct {
-	ServiceName  string          `json:"serviceName"`
-	PublisherKey string          `json:"publisherKey"`
-	RoutingKey   string          `json:"routingKey"`
-	Payload      json.RawMessage `json:"payload"`
+	ServiceName  string            `json:"serviceName"`
+	PublisherKey string            `json:"publisherKey"`
+	RoutingKey   string            `json:"routingKey"`
+	Payload      json.RawMessage   `json:"payload"`
+	Headers      map[string]string `json:"headers,omitempty"`
 }
 
 // --- received ---

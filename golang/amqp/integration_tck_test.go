@@ -172,7 +172,11 @@ func TestIntegrationTCKSubprocess(t *testing.T) {
 }
 
 func amqpPublishFunc(pub *Publisher) spectest.PublishFunc {
-	return func(ctx context.Context, routingKey string, payload json.RawMessage) error {
-		return pub.Publish(ctx, routingKey, payload)
+	return func(ctx context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error {
+		var hdrs []Header
+		for k, v := range headers {
+			hdrs = append(hdrs, Header{Key: k, Value: v})
+		}
+		return pub.Publish(ctx, routingKey, payload, hdrs...)
 	}
 }

@@ -46,7 +46,7 @@ type ServiceManager interface {
 type ServiceState struct {
 	Topology      spec.Topology
 	PublisherKeys []string
-	Publish       func(publisherKey, routingKey string, payload json.RawMessage) error
+	Publish       func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error
 	Received      func() []tck.ReceivedMessageWire
 	Close         func() error
 }
@@ -143,7 +143,7 @@ func handlePublish(w io.Writer, req tck.Request, services map[string]*ServiceSta
 		writeError(w, req.ID, -1, fmt.Sprintf("unknown service: %s", params.ServiceName))
 		return
 	}
-	if err := svc.Publish(params.PublisherKey, params.RoutingKey, params.Payload); err != nil {
+	if err := svc.Publish(params.PublisherKey, params.RoutingKey, params.Payload, params.Headers); err != nil {
 		writeError(w, req.ID, -1, fmt.Sprintf("publish failed: %v", err))
 		return
 	}

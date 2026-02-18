@@ -55,8 +55,19 @@ type MessageSpec struct {
 	From                 string               `json:"from"`
 	RoutingKey           string               `json:"routingKey"`
 	Payload              json.RawMessage      `json:"payload"`
+	CustomHeaders        map[string]string    `json:"customHeaders,omitempty"`
 	ExpectedDeliveries   []ExpectedDelivery   `json:"expectedDeliveries"`
 	UnexpectedDeliveries []UnexpectedDelivery `json:"unexpectedDeliveries,omitempty"`
+	ResponseMessages     []ResponseMessage    `json:"responseMessages,omitempty"`
+}
+
+// ResponseMessage describes a response to publish after a request is delivered.
+// The TCK triggers this after asserting the initial delivery.
+type ResponseMessage struct {
+	From               string             `json:"from"`
+	RoutingKey         string             `json:"routingKey"`
+	Payload            json.RawMessage    `json:"payload"`
+	ExpectedDeliveries []ExpectedDelivery `json:"expectedDeliveries"`
 }
 
 // UnexpectedDelivery describes a service that should NOT receive a message.
@@ -70,6 +81,7 @@ type ExpectedDelivery struct {
 	To           string             `json:"to"`
 	Metadata     MetadataAssertions `json:"metadata,omitempty"`
 	PayloadMatch json.RawMessage    `json:"payloadMatch,omitempty"`
+	HeaderMatch  map[string]string  `json:"headerMatch,omitempty"`
 }
 
 // MetadataAssertions holds optional metadata fields to assert on received messages.
@@ -88,8 +100,8 @@ type ReceivedMessage struct {
 	Info       spec.DeliveryInfo
 }
 
-// PublishFunc publishes a message with the given routing key and payload.
-type PublishFunc func(ctx context.Context, routingKey string, payload json.RawMessage) error
+// PublishFunc publishes a message with the given routing key, payload, and optional headers.
+type PublishFunc func(ctx context.Context, routingKey string, payload json.RawMessage, headers map[string]string) error
 
 // ServiceHandle provides access to a running service's topology, publishers,
 // and received messages.
@@ -186,6 +198,10 @@ func PublisherKey(intent SetupIntent) string {
 		return fmt.Sprintf("custom-stream:%s", intent.Exchange)
 	case "service-request":
 		return fmt.Sprintf("service-request:%s", intent.TargetService)
+	case "service-response":
+		return fmt.Sprintf("service-response:%s", intent.TargetService)
+	case "queue-publish":
+		return fmt.Sprintf("queue-publish:%s", intent.DestinationQueue)
 	default:
 		return intent.Pattern
 	}
@@ -278,7 +294,7 @@ func publishAndAssert(t *testing.T, msg MessageSpec, services map[string]Service
 	require.NotEmpty(t, h.Publishers, "service %q has no publishers", msg.From)
 
 	pub := findPublisher(t, msg.From, services[msg.From], h)
-	err := pub(context.Background(), msg.RoutingKey, msg.Payload)
+	err := pub(context.Background(), msg.RoutingKey, msg.Payload, msg.CustomHeaders)
 	require.NoError(t, err, "publish failed for %s/%s", msg.From, msg.RoutingKey)
 
 	for _, delivery := range msg.ExpectedDeliveries {
@@ -399,7 +415,7 @@ func runOutboundProbe(t *testing.T, probe ProbeMessage, target ProbeTarget, hand
 	h, ok := handles[probe.PublishVia]
 	require.True(t, ok, "outbound probe: service %q not in handles", probe.PublishVia)
 	pub := findPublisher(t, probe.PublishVia, services[probe.PublishVia], h)
-	err := pub(context.Background(), probe.RoutingKey, probe.Payload)
+	err := pub(context.Background(), probe.RoutingKey, probe.Payload, nil)
 	require.NoError(t, err, "outbound probe: publish failed for %s/%s", probe.PublishVia, probe.RoutingKey)
 
 	// Read raw message from broker.
