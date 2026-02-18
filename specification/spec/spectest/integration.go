@@ -52,10 +52,17 @@ type ServiceConfig struct {
 
 // MessageSpec describes a message to publish and its expected deliveries.
 type MessageSpec struct {
-	From               string             `json:"from"`
-	RoutingKey         string             `json:"routingKey"`
-	Payload            json.RawMessage    `json:"payload"`
-	ExpectedDeliveries []ExpectedDelivery `json:"expectedDeliveries"`
+	From                 string               `json:"from"`
+	RoutingKey           string               `json:"routingKey"`
+	Payload              json.RawMessage      `json:"payload"`
+	ExpectedDeliveries   []ExpectedDelivery   `json:"expectedDeliveries"`
+	UnexpectedDeliveries []UnexpectedDelivery `json:"unexpectedDeliveries,omitempty"`
+}
+
+// UnexpectedDelivery describes a service that should NOT receive a message.
+type UnexpectedDelivery struct {
+	To           string `json:"to"`
+	MetadataType string `json:"metadataType"`
 }
 
 // ExpectedDelivery describes where a message should be delivered and what to assert.
@@ -93,7 +100,9 @@ type ServiceHandle struct {
 	Close      func() error
 }
 
-// IntegrationAdapter provides transport-specific operations for the integration TCK.
+// Deprecated: IntegrationAdapter is superseded by tck.Adapter in the
+// github.com/sparetimecoders/gomessaging/tck module, which provides
+// randomized service names, nonce injection, and TCK-owned broker validation.
 type IntegrationAdapter interface {
 	TransportKey() string
 	StartService(t *testing.T, serviceName string, intents []SetupIntent) *ServiceHandle
@@ -182,9 +191,8 @@ func PublisherKey(intent SetupIntent) string {
 	}
 }
 
-// RunIntegrationTCK runs the integration test suite for a given transport adapter.
-// All scenarios share the same adapter (and thus the same broker). For transports
-// that need a fresh broker per scenario, use RunIntegrationTCKScenario directly.
+// Deprecated: RunIntegrationTCK is superseded by tck.RunTCK in the
+// github.com/sparetimecoders/gomessaging/tck module.
 func RunIntegrationTCK(t *testing.T, fixturePath string, adapter IntegrationAdapter) {
 	t.Helper()
 	scenarios := LoadTCKScenarios(t, fixturePath)
@@ -201,7 +209,8 @@ func RunIntegrationTCK(t *testing.T, fixturePath string, adapter IntegrationAdap
 	}
 }
 
-// RunIntegrationTCKScenario runs a single TCK scenario against the given adapter.
+// Deprecated: RunIntegrationTCKScenario is superseded by tck.RunScenario in the
+// github.com/sparetimecoders/gomessaging/tck module.
 func RunIntegrationTCKScenario(t *testing.T, adapter IntegrationAdapter, scenario TCKScenario) {
 	t.Helper()
 	key := adapter.TransportKey()
@@ -219,6 +228,7 @@ func RunIntegrationTCKScenario(t *testing.T, adapter IntegrationAdapter, scenari
 	}
 
 	// Phase 2: Assert topology for each service.
+	wt := WrapT(t)
 	for svcName, h := range handles {
 		expected, ok := scenario.ExpectedEndpoints[key][svcName]
 		if !ok {
@@ -226,16 +236,16 @@ func RunIntegrationTCKScenario(t *testing.T, adapter IntegrationAdapter, scenari
 		}
 		topo := h.Topology()
 		require.Equal(t, svcName, topo.ServiceName, "service name mismatch for %s", svcName)
-		AssertTopology(t, expected, topo)
+		AssertTopology(wt, expected, topo)
 	}
 
 	// Phase 3: Assert broker state.
 	actualBroker := adapter.QueryBrokerState(t)
 	switch key {
 	case "amqp":
-		AssertAMQPBrokerState(t, scenario.Broker.AMQP, actualBroker.AMQP)
+		AssertAMQPBrokerState(wt, scenario.Broker.AMQP, actualBroker.AMQP)
 	case "nats":
-		AssertNATSBrokerState(t, scenario.Broker.NATS, actualBroker.NATS)
+		AssertNATSBrokerState(wt, scenario.Broker.NATS, actualBroker.NATS)
 	}
 
 	// Phase 4: Publish messages and assert delivery.
@@ -273,6 +283,10 @@ func publishAndAssert(t *testing.T, msg MessageSpec, services map[string]Service
 
 	for _, delivery := range msg.ExpectedDeliveries {
 		assertDelivery(t, delivery, handles)
+	}
+
+	for _, unexpected := range msg.UnexpectedDeliveries {
+		assertNoDelivery(t, unexpected, handles)
 	}
 }
 
@@ -341,6 +355,24 @@ func assertDelivery(t *testing.T, delivery ExpectedDelivery, handles map[string]
 
 	if len(delivery.PayloadMatch) > 0 {
 		assertPayloadMatch(t, delivery.To, matched.Payload, delivery.PayloadMatch)
+	}
+}
+
+func assertNoDelivery(t *testing.T, unexpected UnexpectedDelivery, handles map[string]*ServiceHandle) {
+	t.Helper()
+
+	th, ok := handles[unexpected.To]
+	require.True(t, ok, "target service %q not found for unexpected delivery", unexpected.To)
+
+	// Expected deliveries have already been asserted (with up to 5s polling),
+	// so messages have had plenty of time to arrive. A short additional wait
+	// guards against slow routing.
+	time.Sleep(200 * time.Millisecond)
+
+	for _, rm := range th.Received() {
+		assert.NotEqual(t, unexpected.MetadataType, rm.Metadata.Type,
+			"unexpected delivery to %s: message with type %s should not have been received",
+			unexpected.To, unexpected.MetadataType)
 	}
 }
 

@@ -30,7 +30,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"testing"
 
 	"github.com/sparetimecoders/gomessaging/spec"
 )
@@ -137,7 +136,7 @@ type fixtureFile struct {
 }
 
 // LoadScenarios loads topology conformance scenarios from the shared fixture file.
-func LoadScenarios(t *testing.T, fixturePath string) []Scenario {
+func LoadScenarios(t T, fixturePath string) []Scenario {
 	t.Helper()
 	data, err := os.ReadFile(fixturePath)
 	if err != nil {
@@ -154,7 +153,7 @@ func LoadScenarios(t *testing.T, fixturePath string) []Scenario {
 }
 
 // AssertTopology verifies that actual topology endpoints match expected ones.
-func AssertTopology(t *testing.T, expected []ExpectedEndpoint, actual spec.Topology) {
+func AssertTopology(t T, expected []ExpectedEndpoint, actual spec.Topology) {
 	t.Helper()
 	if len(actual.Endpoints) != len(expected) {
 		t.Errorf("endpoint count mismatch: got %d, want %d", len(actual.Endpoints), len(expected))
@@ -166,7 +165,7 @@ func AssertTopology(t *testing.T, expected []ExpectedEndpoint, actual spec.Topol
 }
 
 // RequireEndpointMatch finds and validates a matching endpoint in actuals.
-func RequireEndpointMatch(t *testing.T, expected ExpectedEndpoint, actuals []spec.Endpoint) {
+func RequireEndpointMatch(t T, expected ExpectedEndpoint, actuals []spec.Endpoint) {
 	t.Helper()
 	for _, actual := range actuals {
 		if spec.EndpointDirection(expected.Direction) != actual.Direction ||
@@ -197,7 +196,7 @@ func RequireEndpointMatch(t *testing.T, expected ExpectedEndpoint, actuals []spe
 }
 
 // AssertAMQPBrokerState verifies that actual AMQP broker state matches expected.
-func AssertAMQPBrokerState(t *testing.T, expected, actual AMQPBrokerState) {
+func AssertAMQPBrokerState(t T, expected, actual AMQPBrokerState) {
 	t.Helper()
 
 	// Exchanges: match by name.
@@ -296,7 +295,7 @@ func queueID(q AMQPQueue) string {
 }
 
 // AssertNATSBrokerState verifies that actual NATS broker state matches expected.
-func AssertNATSBrokerState(t *testing.T, expected, actual NATSBrokerState) {
+func AssertNATSBrokerState(t T, expected, actual NATSBrokerState) {
 	t.Helper()
 
 	// Streams: match by name.

@@ -50,6 +50,10 @@ type Publisher struct {
 
 	// publishFn abstracts the publish operation for JetStream vs Core.
 	publishFn func(ctx context.Context, subject string, msg *natsgo.Msg) error
+
+	// subjectFn overrides the default subject computation.
+	// If nil, subjectName(stream, routingKey) is used.
+	subjectFn func(stream, routingKey string) string
 }
 
 // NewPublisher creates an uninitialized Publisher. Pass it to a publisher Setup
@@ -85,7 +89,11 @@ func (p *Publisher) publishMessage(ctx context.Context, routingKey string, msg a
 		spanNameFn = defaultPublishSpanName
 	}
 
-	subject := subjectName(p.stream, routingKey)
+	fn := subjectName
+	if p.subjectFn != nil {
+		fn = p.subjectFn
+	}
+	subject := fn(p.stream, routingKey)
 	spanAttrs := publishSpanAttributes(p.stream, subject, p.serviceName)
 	ctx, span := tracer.Start(ctx, spanNameFn(p.stream, routingKey),
 		trace.WithSpanKind(trace.SpanKindProducer),

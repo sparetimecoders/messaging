@@ -5,4 +5,5 @@ use (
 	./nats
 	../demo/go
 	../specification/spec
+	../specification/tck
 )

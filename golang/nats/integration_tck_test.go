@@ -25,16 +25,14 @@ package nats
 import (
 	"context"
 	"encoding/json"
-	"strings"
+	"os/exec"
+	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
-	natsgo "github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 	"github.com/sparetimecoders/gomessaging/spec"
 	"github.com/sparetimecoders/gomessaging/spec/spectest"
+	"github.com/sparetimecoders/gomessaging/tck"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +42,13 @@ type natsIntegrationAdapter struct {
 
 func (a *natsIntegrationAdapter) TransportKey() string { return "nats" }
 
-func (a *natsIntegrationAdapter) StartService(t *testing.T, serviceName string, intents []spectest.SetupIntent) *spectest.ServiceHandle {
+func (a *natsIntegrationAdapter) BrokerConfig() tck.BrokerConfig {
+	return tck.BrokerConfig{
+		NATSURL: a.url,
+	}
+}
+
+func (a *natsIntegrationAdapter) StartService(t spectest.T, serviceName string, intents []spectest.SetupIntent) *spectest.ServiceHandle {
 	t.Helper()
 
 	var mu sync.Mutex
@@ -89,7 +93,18 @@ func (a *natsIntegrationAdapter) StartService(t *testing.T, serviceName string, 
 			setups = append(setups, TransientStreamConsumer(intent.Exchange, intent.RoutingKey, captureHandler))
 
 		case intent.Pattern == "service-request" && intent.Direction == "consume":
-			setups = append(setups, ServiceRequestConsumer(intent.RoutingKey, captureHandler))
+			rrHandler := func(_ context.Context, event spec.ConsumableEvent[json.RawMessage]) (json.RawMessage, error) {
+				mu.Lock()
+				defer mu.Unlock()
+				received = append(received, spectest.ReceivedMessage{
+					RoutingKey: event.DeliveryInfo.Key,
+					Payload:    event.Payload,
+					Metadata:   event.Metadata,
+					Info:       event.DeliveryInfo,
+				})
+				return json.RawMessage(`{"ok":true}`), nil
+			}
+			setups = append(setups, RequestResponseHandler[json.RawMessage, json.RawMessage](intent.RoutingKey, rrHandler))
 
 		case intent.Pattern == "service-request" && intent.Direction == "publish":
 			pub := NewPublisher()
@@ -105,10 +120,10 @@ func (a *natsIntegrationAdapter) StartService(t *testing.T, serviceName string, 
 	}
 
 	conn, err := NewConnection(serviceName, a.url)
-	require.NoError(t, err)
+	spectest.RequireNoError(t, err)
 
 	err = conn.Start(context.Background(), setups...)
-	require.NoError(t, err)
+	spectest.RequireNoError(t, err)
 
 	return &spectest.ServiceHandle{
 		Topology:   conn.Topology,
@@ -124,130 +139,37 @@ func (a *natsIntegrationAdapter) StartService(t *testing.T, serviceName string, 
 	}
 }
 
-func (a *natsIntegrationAdapter) QueryBrokerState(t *testing.T) spectest.BrokerState {
-	t.Helper()
-
-	nc, err := natsgo.Connect(a.url)
-	require.NoError(t, err)
-	defer nc.Close()
-
-	js, err := jetstream.New(nc)
-	require.NoError(t, err)
-
-	ctx := context.Background()
-
-	var streams []spectest.NATSStream
-	streamLister := js.ListStreams(ctx)
-	for si := range streamLister.Info() {
-		subjects := make([]string, len(si.Config.Subjects))
-		copy(subjects, si.Config.Subjects)
-		streams = append(streams, spectest.NATSStream{
-			Name:     si.Config.Name,
-			Subjects: subjects,
-			Storage:  strings.ToLower(si.Config.Storage.String()),
-		})
-	}
-	require.NoError(t, streamLister.Err())
-
-	var consumers []spectest.NATSConsumer
-	for _, s := range streams {
-		stream, err := js.Stream(ctx, s.Name)
-		require.NoError(t, err)
-
-		consLister := stream.ListConsumers(ctx)
-		for ci := range consLister.Info() {
-			nc := spectest.NATSConsumer{
-				Stream:    s.Name,
-				AckPolicy: ackPolicyString(ci.Config.AckPolicy),
-			}
-			if ci.Config.Durable != "" {
-				nc.Durable = ci.Config.Durable
-			}
-			if ci.Config.FilterSubject != "" {
-				nc.FilterSubject = ci.Config.FilterSubject
-			}
-			if len(ci.Config.FilterSubjects) > 0 {
-				nc.FilterSubjects = ci.Config.FilterSubjects
-			}
-			consumers = append(consumers, nc)
-		}
-		require.NoError(t, consLister.Err())
-	}
-
-	return spectest.BrokerState{
-		NATS: spectest.NATSBrokerState{
-			Streams:   streams,
-			Consumers: consumers,
-		},
-	}
-}
-
-func (a *natsIntegrationAdapter) PublishRaw(t *testing.T, target spectest.ProbeTarget, payload json.RawMessage, headers map[string]string) error {
-	t.Helper()
-	nc, err := natsgo.Connect(a.url)
-	require.NoError(t, err)
-	defer nc.Close()
-
-	js, err := jetstream.New(nc)
-	require.NoError(t, err)
-
-	natsHeaders := natsgo.Header{}
-	for attr, val := range headers {
-		natsHeaders.Set("ce-"+attr, val)
-	}
-	natsHeaders.Set(spec.CEID, uuid.New().String())
-	natsHeaders.Set(spec.CETime, time.Now().UTC().Format(time.RFC3339))
-
-	msg := &natsgo.Msg{
-		Subject: target.Subject,
-		Data:    payload,
-		Header:  natsHeaders,
-	}
-	_, err = js.PublishMsg(context.Background(), msg)
-	return err
-}
-
-func (a *natsIntegrationAdapter) CreateProbeConsumer(t *testing.T, target spectest.ProbeTarget) *spectest.ProbeConsumer {
-	t.Helper()
-	nc, err := natsgo.Connect(a.url)
-	require.NoError(t, err)
-
-	sub, err := nc.SubscribeSync(target.Subject)
-	require.NoError(t, err)
-	require.NoError(t, nc.Flush())
-
-	return &spectest.ProbeConsumer{
-		Receive: func(timeout time.Duration) *spectest.RawMessage {
-			msg, err := sub.NextMsg(timeout)
-			if err != nil {
-				return nil
-			}
-			hdrs := make(map[string]string)
-			for k := range msg.Header {
-				v := msg.Header.Get(k)
-				if strings.HasPrefix(k, "ce-") {
-					hdrs[strings.TrimPrefix(k, "ce-")] = v
-				}
-			}
-			return &spectest.RawMessage{
-				Payload: msg.Data,
-				Headers: hdrs,
-			}
-		},
-		Close: func() {
-			_ = sub.Unsubscribe()
-			nc.Close()
-		},
-	}
-}
-
 func TestIntegrationTCK(t *testing.T) {
-	scenarios := spectest.LoadTCKScenarios(t, "../../specification/spec/testdata/tck.json")
+	wt := spectest.WrapT(t)
+	scenarios := tck.LoadScenarios(wt, "../../specification/spec/testdata/tck.json")
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			s := startTestServer(t)
 			adapter := &natsIntegrationAdapter{url: serverURL(s)}
-			spectest.RunIntegrationTCKScenario(t, adapter, scenario)
+			tck.RunScenario(spectest.WrapT(t), adapter, scenario)
+		})
+	}
+}
+
+func TestIntegrationTCKSubprocess(t *testing.T) {
+	// Build the tck-adapter binary.
+	binDir := t.TempDir()
+	binPath := filepath.Join(binDir, "tck-adapter")
+	build := exec.Command("go", "build", "-o", binPath, "./cmd/tck-adapter")
+	build.Dir = "."
+	out, err := build.CombinedOutput()
+	require.NoError(t, err, "failed to build tck-adapter: %s", out)
+
+	wt := spectest.WrapT(t)
+	scenarios := tck.LoadScenarios(wt, "../../specification/spec/testdata/tck.json")
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			s := startTestServer(t)
+			url := serverURL(s)
+			t.Setenv("NATS_URL", url)
+
+			adapter := tck.NewSubprocessAdapter(spectest.WrapT(t), binPath)
+			tck.RunScenario(spectest.WrapT(t), adapter, scenario)
 		})
 	}
 }
@@ -255,18 +177,5 @@ func TestIntegrationTCK(t *testing.T) {
 func publishFunc(pub *Publisher) spectest.PublishFunc {
 	return func(ctx context.Context, routingKey string, payload json.RawMessage) error {
 		return pub.Publish(ctx, routingKey, payload)
-	}
-}
-
-func ackPolicyString(p jetstream.AckPolicy) string {
-	switch p {
-	case jetstream.AckExplicitPolicy:
-		return "explicit"
-	case jetstream.AckNonePolicy:
-		return "none"
-	case jetstream.AckAllPolicy:
-		return "all"
-	default:
-		return "unknown"
 	}
 }

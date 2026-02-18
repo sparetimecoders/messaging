@@ -6,45 +6,6 @@
         "orders":        { "setups": [{"pattern":"event-stream","direction":"publish"}] },
         "notifications": { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.Created"}] }
       },
-      "expectedEndpoints": {
-        "amqp": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic"}
-          ],
-          "notifications": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic","queueName":"events.topic.exchange.queue.notifications","routingKey":"Order.Created"}
-          ]
-        },
-        "nats": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic"}
-          ],
-          "notifications": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic","queueName":"notifications","routingKey":"Order.Created"}
-          ]
-        }
-      },
-      "broker": {
-        "amqp": {
-          "exchanges": [
-            {"name":"events.topic.exchange","type":"topic","durable":true,"autoDelete":false}
-          ],
-          "queues": [
-            {"name":"events.topic.exchange.queue.notifications","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}}
-          ],
-          "bindings": [
-            {"source":"events.topic.exchange","destination":"events.topic.exchange.queue.notifications","routingKey":"Order.Created"}
-          ]
-        },
-        "nats": {
-          "streams": [
-            {"name":"events","subjects":["events.\u003e"],"storage":"file"}
-          ],
-          "consumers": [
-            {"stream":"events","durable":"notifications","filterSubject":"events.Order.Created","ackPolicy":"explicit"}
-          ]
-        }
-      },
       "messages": [
         {
           "from": "orders",
@@ -61,10 +22,6 @@
           "publishVia": "orders",
           "routingKey": "Probe.Outbound",
           "payload": {"probeId":"out-1"},
-          "rawTarget": {
-            "nats": {"stream":"events","subject":"events.Probe.Outbound"},
-            "amqp": {"exchange":"events.topic.exchange","routingKey":"Probe.Outbound"}
-          },
           "ceAttributes": {"type":"Probe.Outbound","source":"orders","specversion":"1.0"},
           "payloadMatch": {"probeId":"out-1"}
         },
@@ -73,10 +30,6 @@
           "expectReceivedBy": "notifications",
           "routingKey": "Order.Created",
           "payload": {"probeId":"in-1","_tckInjected":true},
-          "rawTarget": {
-            "nats": {"subject":"events.Order.Created"},
-            "amqp": {"exchange":"events.topic.exchange","routingKey":"Order.Created"}
-          },
           "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
           "payloadMatch": {"probeId":"in-1","_tckInjected":true}
         }
@@ -89,54 +42,6 @@
         "notifications": { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.Created"}] },
         "analytics":     { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.Created"}] }
       },
-      "expectedEndpoints": {
-        "amqp": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic"}
-          ],
-          "notifications": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic","queueName":"events.topic.exchange.queue.notifications","routingKey":"Order.Created"}
-          ],
-          "analytics": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic","queueName":"events.topic.exchange.queue.analytics","routingKey":"Order.Created"}
-          ]
-        },
-        "nats": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic"}
-          ],
-          "notifications": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic","queueName":"notifications","routingKey":"Order.Created"}
-          ],
-          "analytics": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic","queueName":"analytics","routingKey":"Order.Created"}
-          ]
-        }
-      },
-      "broker": {
-        "amqp": {
-          "exchanges": [
-            {"name":"events.topic.exchange","type":"topic","durable":true,"autoDelete":false}
-          ],
-          "queues": [
-            {"name":"events.topic.exchange.queue.notifications","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}},
-            {"name":"events.topic.exchange.queue.analytics","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}}
-          ],
-          "bindings": [
-            {"source":"events.topic.exchange","destination":"events.topic.exchange.queue.notifications","routingKey":"Order.Created"},
-            {"source":"events.topic.exchange","destination":"events.topic.exchange.queue.analytics","routingKey":"Order.Created"}
-          ]
-        },
-        "nats": {
-          "streams": [
-            {"name":"events","subjects":["events.\u003e"],"storage":"file"}
-          ],
-          "consumers": [
-            {"stream":"events","durable":"notifications","filterSubject":"events.Order.Created","ackPolicy":"explicit"},
-            {"stream":"events","durable":"analytics","filterSubject":"events.Order.Created","ackPolicy":"explicit"}
-          ]
-        }
-      },
       "messages": [
         {
           "from": "orders",
@@ -147,6 +52,24 @@
             {"to":"analytics","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"amount":99}}
           ]
         }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "orders",
+          "routingKey": "Probe.FanOut",
+          "payload": {"probeId":"fanout-out-1"},
+          "ceAttributes": {"type":"Probe.FanOut","source":"orders","specversion":"1.0"},
+          "payloadMatch": {"probeId":"fanout-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "notifications",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"fanout-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"fanout-in-1","_tckInjected":true}
+        }
       ]
     },
     {
@@ -156,41 +79,6 @@
           {"pattern":"custom-stream","direction":"publish","exchange":"audit"},
           {"pattern":"custom-stream","direction":"consume","exchange":"audit","routingKey":"Audit.Entry"}
         ]}
-      },
-      "expectedEndpoints": {
-        "amqp": {
-          "analytics": [
-            {"direction":"publish","pattern":"custom-stream","exchangeName":"audit.topic.exchange","exchangeKind":"topic"},
-            {"direction":"consume","pattern":"custom-stream","exchangeName":"audit.topic.exchange","exchangeKind":"topic","queueName":"audit.topic.exchange.queue.analytics","routingKey":"Audit.Entry"}
-          ]
-        },
-        "nats": {
-          "analytics": [
-            {"direction":"publish","pattern":"custom-stream","exchangeName":"audit","exchangeKind":"topic"},
-            {"direction":"consume","pattern":"custom-stream","exchangeName":"audit","exchangeKind":"topic","queueName":"analytics","routingKey":"Audit.Entry"}
-          ]
-        }
-      },
-      "broker": {
-        "amqp": {
-          "exchanges": [
-            {"name":"audit.topic.exchange","type":"topic","durable":true,"autoDelete":false}
-          ],
-          "queues": [
-            {"name":"audit.topic.exchange.queue.analytics","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}}
-          ],
-          "bindings": [
-            {"source":"audit.topic.exchange","destination":"audit.topic.exchange.queue.analytics","routingKey":"Audit.Entry"}
-          ]
-        },
-        "nats": {
-          "streams": [
-            {"name":"audit","subjects":["audit.\u003e"],"storage":"file"}
-          ],
-          "consumers": [
-            {"stream":"audit","durable":"analytics","filterSubject":"audit.Audit.Entry","ackPolicy":"explicit"}
-          ]
-        }
       },
       "messages": [
         {
@@ -208,10 +96,6 @@
           "publishVia": "analytics",
           "routingKey": "Probe.AuditOut",
           "payload": {"probeId":"audit-out-1"},
-          "rawTarget": {
-            "nats": {"stream":"audit","subject":"audit.Probe.AuditOut"},
-            "amqp": {"exchange":"audit.topic.exchange","routingKey":"Probe.AuditOut"}
-          },
           "ceAttributes": {"type":"Probe.AuditOut","source":"analytics","specversion":"1.0"},
           "payloadMatch": {"probeId":"audit-out-1"}
         },
@@ -220,10 +104,6 @@
           "expectReceivedBy": "analytics",
           "routingKey": "Audit.Entry",
           "payload": {"probeId":"audit-in-1","_tckInjected":true},
-          "rawTarget": {
-            "nats": {"subject":"audit.Audit.Entry"},
-            "amqp": {"exchange":"audit.topic.exchange","routingKey":"Audit.Entry"}
-          },
           "ceAttributes": {"type":"Audit.Entry","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
           "payloadMatch": {"probeId":"audit-in-1","_tckInjected":true}
         }
@@ -235,45 +115,6 @@
         "orders":    { "setups": [{"pattern":"event-stream","direction":"publish"}] },
         "dashboard": { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.Created","ephemeral":true}] }
       },
-      "expectedEndpoints": {
-        "amqp": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic"}
-          ],
-          "dashboard": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events.topic.exchange","exchangeKind":"topic","queueNamePrefix":"events.topic.exchange.queue.dashboard-","routingKey":"Order.Created","ephemeral":true}
-          ]
-        },
-        "nats": {
-          "orders": [
-            {"direction":"publish","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic"}
-          ],
-          "dashboard": [
-            {"direction":"consume","pattern":"event-stream","exchangeName":"events","exchangeKind":"topic","routingKey":"Order.Created","ephemeral":true}
-          ]
-        }
-      },
-      "broker": {
-        "amqp": {
-          "exchanges": [
-            {"name":"events.topic.exchange","type":"topic","durable":true,"autoDelete":false}
-          ],
-          "queues": [
-            {"namePrefix":"events.topic.exchange.queue.dashboard-","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":1000}}
-          ],
-          "bindings": [
-            {"source":"events.topic.exchange","destinationPrefix":"events.topic.exchange.queue.dashboard-","routingKey":"Order.Created"}
-          ]
-        },
-        "nats": {
-          "streams": [
-            {"name":"events","subjects":["events.\u003e"],"storage":"file"}
-          ],
-          "consumers": [
-            {"stream":"events","filterSubject":"events.Order.Created","ackPolicy":"explicit"}
-          ]
-        }
-      },
       "messages": [
         {
           "from": "orders",
@@ -282,6 +123,24 @@
           "expectedDeliveries": [
             {"to":"dashboard","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"test-789"}}
           ]
+        }
+      ],
+      "probeMessages": [
+        {
+          "direction": "outbound",
+          "publishVia": "orders",
+          "routingKey": "Probe.Transient",
+          "payload": {"probeId":"transient-out-1"},
+          "ceAttributes": {"type":"Probe.Transient","source":"orders","specversion":"1.0"},
+          "payloadMatch": {"probeId":"transient-out-1"}
+        },
+        {
+          "direction": "inbound",
+          "expectReceivedBy": "dashboard",
+          "routingKey": "Order.Created",
+          "payload": {"probeId":"transient-in-1","_tckInjected":true},
+          "ceAttributes": {"type":"Order.Created","source":"tck-probe","specversion":"1.0","datacontenttype":"application/json"},
+          "payloadMatch": {"probeId":"transient-in-1","_tckInjected":true}
         }
       ]
     },
@@ -296,47 +155,46 @@
           {"pattern":"service-response","direction":"consume","targetService":"email-svc","routingKey":"email.send"}
         ]}
       },
-      "expectedEndpoints": {
-        "amqp": {
-          "email-svc": [
-            {"direction":"consume","pattern":"service-request","exchangeName":"email-svc.direct.exchange.request","exchangeKind":"direct","queueName":"email-svc.direct.exchange.request.queue","routingKey":"email.send"}
-          ],
-          "web-app": [
-            {"direction":"publish","pattern":"service-request","exchangeName":"email-svc.direct.exchange.request","exchangeKind":"direct"},
-            {"direction":"consume","pattern":"service-response","exchangeName":"email-svc.headers.exchange.response","exchangeKind":"headers","queueName":"email-svc.headers.exchange.response.queue.web-app","routingKey":"email.send"}
-          ]
-        },
-        "nats": {
-          "email-svc": [
-            {"direction":"consume","pattern":"service-request","exchangeName":"email-svc","exchangeKind":"direct","queueName":"email-svc","routingKey":"email.send"}
-          ],
-          "web-app": [
-            {"direction":"publish","pattern":"service-request","exchangeName":"email-svc","exchangeKind":"direct"},
-            {"direction":"consume","pattern":"service-response","exchangeName":"email-svc","exchangeKind":"headers","queueName":"web-app","routingKey":"email.send"}
+      "messages": [
+        {
+          "from": "web-app",
+          "routingKey": "email.send",
+          "payload": {"to":"user@example.com","subject":"Welcome","body":"Hello!"},
+          "expectedDeliveries": [
+            {"to":"email-svc","metadata":{"type":"email.send","source":"web-app","specVersion":"1.0"},"payloadMatch":{"to":"user@example.com","subject":"Welcome"}}
           ]
         }
+      ]
+    },
+    {
+      "name": "wildcard routing",
+      "services": {
+        "orders":        { "setups": [{"pattern":"event-stream","direction":"publish"}] },
+        "notifications": { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.*"}] },
+        "billing":       { "setups": [{"pattern":"event-stream","direction":"consume","routingKey":"Order.Created"}] }
       },
-      "broker": {
-        "amqp": {
-          "exchanges": [
-            {"name":"email-svc.direct.exchange.request","type":"direct","durable":true,"autoDelete":false},
-            {"name":"email-svc.headers.exchange.response","type":"headers","durable":true,"autoDelete":false}
-          ],
-          "queues": [
-            {"name":"email-svc.direct.exchange.request.queue","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}},
-            {"name":"email-svc.headers.exchange.response.queue.web-app","durable":true,"autoDelete":false,"arguments":{"x-queue-type":"quorum","x-expires":432000000}}
-          ],
-          "bindings": [
-            {"source":"email-svc.direct.exchange.request","destination":"email-svc.direct.exchange.request.queue","routingKey":"email.send"},
-            {"source":"email-svc.headers.exchange.response","destination":"email-svc.headers.exchange.response.queue.web-app","routingKey":"email.send"}
+      "messages": [
+        {
+          "from": "orders",
+          "routingKey": "Order.Created",
+          "payload": {"orderId":"wc-1","amount":50},
+          "expectedDeliveries": [
+            {"to":"notifications","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"wc-1"}},
+            {"to":"billing","metadata":{"type":"Order.Created","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"wc-1"}}
           ]
         },
-        "nats": {
-          "streams": [],
-          "consumers": []
+        {
+          "from": "orders",
+          "routingKey": "Order.Updated",
+          "payload": {"orderId":"wc-2","status":"shipped"},
+          "expectedDeliveries": [
+            {"to":"notifications","metadata":{"type":"Order.Updated","source":"orders","specVersion":"1.0"},"payloadMatch":{"orderId":"wc-2"}}
+          ],
+          "unexpectedDeliveries": [
+            {"to":"billing","metadataType":"Order.Updated"}
+          ]
         }
-      },
-      "messages": []
+      ]
     }
   ]
 }

@@ -73,6 +73,9 @@ func ServicePublisher(targetService string, publisher *Publisher) Setup {
 			}
 			publisher.publishFn = coreRequestFn(c.nc, timeout)
 		}
+		publisher.subjectFn = func(_, routingKey string) string {
+			return serviceRequestSubject(targetService, routingKey)
+		}
 		c.log().Info("configured service publisher", "targetService", targetService)
 		c.addEndpoint(spec.Endpoint{
 			Direction:    spec.DirectionPublish,
