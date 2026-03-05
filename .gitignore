@@ -20,3 +20,4 @@ dist/
 
 # Compiled Go binaries
 tck/tck-runner
+specverify/specverify
