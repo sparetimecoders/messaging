@@ -22,6 +22,8 @@ gomessaging defines a **shared specification** for event-driven microservices th
 - **CloudEvents 1.0** &mdash; all messages carry standardized metadata
 - **Conformance testing** &mdash; the TCK proves transport implementations are correct
 
+> **Documentation**: See the [docs/](docs/) directory for in-depth guides on [getting started](docs/getting-started.md), [communication patterns](docs/patterns.md), [naming conventions](docs/naming.md), [CloudEvents](docs/cloudevents.md), [topology tools](docs/topology.md), and [implementing a transport](docs/implementing.md).
+
 ## Ecosystem
 
 | Package | Language | Description |
