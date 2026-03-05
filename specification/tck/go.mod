@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.48.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/sparetimecoders/messaging/specification/spec v0.0.0
+	github.com/sparetimecoders/messaging/specification/spec v0.0.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -21,4 +21,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/sparetimecoders/messaging/specification/spec => ../spec
+replace github.com/sparetimecoders/messaging/specification/spec v0.0.1 => ../spec
