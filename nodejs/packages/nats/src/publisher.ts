@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { Context } from "@opentelemetry/api";
 import type { JetStreamClient, NatsConnection, MsgHdrs } from "nats";
 import { headers as natsHeaders } from "nats";
+import type { MetricsRecorder, RoutingKeyMapper } from "@gomessaging/spec";
 import {
   CESpecVersion,
   CESpecVersionValue,
@@ -14,6 +15,7 @@ import {
   CETime,
   CEID,
   natsSubject,
+  mapRoutingKey,
 } from "@gomessaging/spec";
 import { injectToHeaders } from "./tracing.js";
 import type { TextMapPropagator } from "@opentelemetry/api";
@@ -26,6 +28,10 @@ export interface PublisherOptions {
   serviceName: string;
   stream: string;
   propagator?: TextMapPropagator;
+  metrics?: MetricsRecorder;
+  routingKeyMapper?: RoutingKeyMapper;
+  /** Custom subject builder. Defaults to natsSubject(stream, routingKey). */
+  subjectFn?: (stream: string, routingKey: string) => string;
 }
 
 /**
@@ -35,12 +41,18 @@ export class Publisher {
   private readonly serviceName: string;
   private readonly stream: string;
   private readonly propagator?: TextMapPropagator;
+  private readonly metrics?: MetricsRecorder;
+  private readonly routingKeyMapper?: RoutingKeyMapper;
+  private readonly subjectFn: (stream: string, routingKey: string) => string;
   private publishFn: PublishFn | null = null;
 
   constructor(options: PublisherOptions) {
     this.serviceName = options.serviceName;
     this.stream = options.stream;
     this.propagator = options.propagator;
+    this.metrics = options.metrics;
+    this.routingKeyMapper = options.routingKeyMapper;
+    this.subjectFn = options.subjectFn ?? natsSubject;
   }
 
   /** Wire this publisher to use JetStream publish. */
@@ -60,16 +72,44 @@ export class Publisher {
   /**
    * Publish a message with the given routing key.
    * CloudEvents headers are set using the setDefault pattern.
+   *
+   * @param routingKey - The routing key for the message.
+   * @param msg - The message payload (will be JSON-serialized).
+   * @param ctxOrHeaders - Optional OTel context for trace propagation,
+   *   or a Record of custom headers to set on the message.
+   * @param customHeaders - Optional custom headers when ctxOrHeaders is a Context.
    */
-  async publish(routingKey: string, msg: unknown, ctx?: Context): Promise<void> {
+  async publish(
+    routingKey: string,
+    msg: unknown,
+    ctxOrHeaders?: Context | Record<string, string>,
+    customHeaders?: Record<string, string>,
+  ): Promise<void> {
     if (!this.publishFn) {
       throw new Error("Publisher not wired — call wireJetStream or wireCoreRequest first");
     }
 
-    const subject = natsSubject(this.stream, routingKey);
+    // Resolve overloaded parameters
+    let ctx: Context | undefined;
+    let extraHeaders: Record<string, string> | undefined;
+    if (ctxOrHeaders !== undefined && typeof ctxOrHeaders === "object" && !("getValue" in ctxOrHeaders)) {
+      extraHeaders = ctxOrHeaders as Record<string, string>;
+    } else {
+      ctx = ctxOrHeaders as Context | undefined;
+      extraHeaders = customHeaders;
+    }
+
+    const subject = this.subjectFn(this.stream, routingKey);
     const data = new TextEncoder().encode(JSON.stringify(msg));
 
     const hdrs = natsHeaders();
+
+    // Apply custom headers first so CE defaults don't override them
+    if (extraHeaders) {
+      for (const [k, v] of Object.entries(extraHeaders)) {
+        hdrs.set(k, v);
+      }
+    }
 
     // Set service header
     hdrs.set("service", this.serviceName);
@@ -95,6 +135,15 @@ export class Publisher {
       injectToHeaders(ctx, hdrs, this.propagator);
     }
 
-    await this.publishFn(subject, data, hdrs);
+    const mappedKey = mapRoutingKey(routingKey, this.routingKeyMapper);
+    const startTime = Date.now();
+
+    try {
+      await this.publishFn(subject, data, hdrs);
+      this.metrics?.publishSucceed(this.stream, mappedKey, Date.now() - startTime);
+    } catch (err) {
+      this.metrics?.publishFailed(this.stream, mappedKey, Date.now() - startTime);
+      throw err;
+    }
   }
 }

@@ -88,7 +88,9 @@ describe("JetStream consumers", () => {
         update: vi.fn().mockResolvedValue({}),
       },
       consumers: {
-        add: vi.fn().mockResolvedValue({}),
+        add: vi.fn().mockImplementation((_stream: string, cfg: { durable_name?: string }) => {
+          return Promise.resolve({ name: cfg.durable_name ?? `ephemeral-${Date.now()}` });
+        }),
         delete: vi.fn().mockResolvedValue(true),
       },
     };
@@ -298,7 +300,12 @@ describe("JetStream consumers", () => {
 
     const jsm = {
       streams: { add: vi.fn().mockResolvedValue({}), update: vi.fn().mockResolvedValue({}) },
-      consumers: { add: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue(true) },
+      consumers: {
+        add: vi.fn().mockImplementation((_stream: string, cfg: { durable_name?: string }) => {
+          return Promise.resolve({ name: cfg.durable_name ?? `ephemeral-${Date.now()}` });
+        }),
+        delete: vi.fn().mockResolvedValue(true),
+      },
     };
 
     const registrations: JSConsumerRegistration<unknown>[] = [

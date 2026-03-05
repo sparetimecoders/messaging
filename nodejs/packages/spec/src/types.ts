@@ -76,5 +76,26 @@ export type RequestResponseEventHandler<T, R> = (
   event: ConsumableEvent<T>,
 ) => Promise<R>;
 
+/** NotificationSource identifies the origin of a notification. */
+export type NotificationSource = "CONSUMER";
+
+/** Notification represents a successful event processing notification. */
+export interface Notification {
+  deliveryInfo: DeliveryInfo;
+  durationMs: number;
+  source: NotificationSource;
+}
+
+/** ErrorNotification represents a failed event processing notification. */
+export interface ErrorNotification extends Notification {
+  error: Error;
+}
+
+/** NotificationHandler is called after successful event processing. */
+export type NotificationHandler = (n: Notification) => void;
+
+/** ErrorNotificationHandler is called after failed event processing. */
+export type ErrorNotificationHandler = (n: ErrorNotification) => void;
+
 /** ErrParseJSON sentinel error message. */
 export const ErrParseJSON = "failed to parse";

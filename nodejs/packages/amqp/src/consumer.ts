@@ -7,13 +7,21 @@ import type {
   DeliveryInfo,
   EventHandler,
   Headers,
+  MetricsRecorder,
+  RoutingKeyMapper,
+  NotificationHandler,
+  ErrorNotificationHandler,
 } from "@gomessaging/spec";
 import {
   ErrParseJSON,
   metadataFromHeaders,
   validateCEHeaders,
+  normalizeCEHeaders,
+  hasCEHeaders,
+  enrichLegacyMetadata,
   matchRoutingKey,
   routingKeyOverlaps,
+  mapRoutingKey,
 } from "@gomessaging/spec";
 import type { TextMapPropagator } from "@opentelemetry/api";
 import { extractToContext } from "./tracing.js";
@@ -33,11 +41,31 @@ export class QueueConsumer {
   private logger: Logger;
   private propagator?: TextMapPropagator;
   private consumerTag = "";
+  private stopped = false;
+  private metrics?: MetricsRecorder;
+  private routingKeyMapper?: RoutingKeyMapper;
+  private onNotification?: NotificationHandler;
+  private onError?: ErrorNotificationHandler;
+  private legacySupport: boolean;
 
-  constructor(queue: string, logger: Logger, propagator?: TextMapPropagator) {
+  constructor(
+    queue: string,
+    logger: Logger,
+    propagator?: TextMapPropagator,
+    onNotification?: NotificationHandler,
+    onError?: ErrorNotificationHandler,
+    metrics?: MetricsRecorder,
+    routingKeyMapper?: RoutingKeyMapper,
+    legacySupport = false,
+  ) {
     this.queue = queue;
     this.logger = logger;
     this.propagator = propagator;
+    this.onNotification = onNotification;
+    this.onError = onError;
+    this.metrics = metrics;
+    this.routingKeyMapper = routingKeyMapper;
+    this.legacySupport = legacySupport;
   }
 
   addHandler(routingKey: string, handler: EventHandler<unknown>): void {
@@ -74,8 +102,29 @@ export class QueueConsumer {
     return this.consumerTag;
   }
 
+  /** Mark this consumer as stopped so it ignores further deliveries. */
+  stop(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    this.logger.error(
+      `[gomessaging/amqp] consumer loop exited, delivery channel closed for queue "${this.queue}"`,
+    );
+  }
+
+  isStopped(): boolean {
+    return this.stopped;
+  }
+
   private handleMessage(channel: amqplib.Channel, msg: amqplib.ConsumeMessage): void {
+    if (this.stopped) return;
     const deliveryInfo = getDeliveryInfo(this.queue, msg);
+    // Normalize CE headers: accept cloudEvents:*, cloudEvents_*, and ce-* prefixes.
+    // This MUST happen before validateCEHeaders/metadataFromHeaders which expect "ce-" prefix.
+    deliveryInfo.headers = normalizeCEHeaders(deliveryInfo.headers);
+    const mappedKey = mapRoutingKey(deliveryInfo.key, this.routingKeyMapper);
+    const startTime = Date.now();
+
+    this.metrics?.eventReceived(this.queue, mappedKey);
 
     let handler: EventHandler<unknown> | undefined;
     for (const [pattern, h] of this.handlers) {
@@ -88,16 +137,24 @@ export class QueueConsumer {
       this.logger.warn(
         `[gomessaging/amqp] no handler for routing key "${deliveryInfo.key}" on queue "${this.queue}", rejecting`,
       );
+      this.metrics?.eventWithoutHandler(this.queue, mappedKey);
       channel.nack(msg, false, false);
       return;
     }
 
-    // Validate CE headers
-    const warnings = validateCEHeaders(deliveryInfo.headers);
-    if (warnings.length > 0) {
-      this.logger.warn(
-        `[gomessaging/amqp] invalid CloudEvents headers on "${deliveryInfo.key}": ${warnings.join(", ")}`,
+    // Check for legacy (pre-CloudEvents) messages vs malformed CE messages
+    const isLegacy = !hasCEHeaders(deliveryInfo.headers);
+    if (isLegacy) {
+      this.logger.debug(
+        `[gomessaging/amqp] legacy message detected without CloudEvents headers on "${deliveryInfo.key}"`,
       );
+    } else {
+      const warnings = validateCEHeaders(deliveryInfo.headers);
+      if (warnings.length > 0) {
+        this.logger.warn(
+          `[gomessaging/amqp] invalid CloudEvents headers on "${deliveryInfo.key}": ${warnings.join(", ")}`,
+        );
+      }
     }
 
     // Extract OTel context from headers
@@ -111,12 +168,19 @@ export class QueueConsumer {
       this.logger.warn(
         `[gomessaging/amqp] ${ErrParseJSON}: nacking without requeue for "${deliveryInfo.key}"`,
       );
+      this.metrics?.eventNotParsable(this.queue, mappedKey);
       channel.nack(msg, false, false);
       return;
     }
 
     // Build ConsumableEvent
-    const metadata = metadataFromHeaders(deliveryInfo.headers);
+    let metadata = metadataFromHeaders(deliveryInfo.headers);
+    if (isLegacy && this.legacySupport) {
+      metadata = enrichLegacyMetadata(metadata, deliveryInfo);
+      this.logger.debug(
+        `[gomessaging/amqp] enriched legacy message with synthetic metadata on "${deliveryInfo.key}"`,
+      );
+    }
     const event: ConsumableEvent<unknown> = {
       ...metadata,
       deliveryInfo,
@@ -125,12 +189,27 @@ export class QueueConsumer {
 
     handler(event)
       .then(() => {
+        const durationMs = Date.now() - startTime;
+        this.metrics?.eventAck(this.queue, mappedKey, durationMs);
+        this.onNotification?.({
+          deliveryInfo,
+          durationMs,
+          source: "CONSUMER",
+        });
         channel.ack(msg);
       })
       .catch((err: Error) => {
+        const durationMs = Date.now() - startTime;
         this.logger.error(
           `[gomessaging/amqp] handler error for "${deliveryInfo.key}": ${err.message}`,
         );
+        this.metrics?.eventNack(this.queue, mappedKey, durationMs);
+        this.onError?.({
+          deliveryInfo,
+          durationMs,
+          source: "CONSUMER",
+          error: err,
+        });
         if (err.message.includes(ErrParseJSON)) {
           channel.nack(msg, false, false);
         } else {

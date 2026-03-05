@@ -8,6 +8,10 @@ import type {
   EventHandler,
   Headers,
   RequestResponseEventHandler,
+  NotificationHandler,
+  ErrorNotificationHandler,
+  MetricsRecorder,
+  RoutingKeyMapper,
 } from "@gomessaging/spec";
 import {
   metadataFromHeaders,
@@ -16,9 +20,11 @@ import {
   natsSubject,
   translateWildcard,
   matchRoutingKey,
+  mapRoutingKey,
 } from "@gomessaging/spec";
 import { extractToContext } from "./tracing.js";
 import type { TextMapPropagator } from "@opentelemetry/api";
+import type { StreamConfigResolver, ConsumerDefaults } from "./connection.js";
 
 type Logger = Pick<Console, "info" | "warn" | "error" | "debug">;
 
@@ -29,6 +35,10 @@ export interface JSConsumerRegistration<T> {
   routingKey: string;
   handler: EventHandler<T>;
   durable?: string;
+  /** Per-consumer max delivery attempts. Overrides connection-level consumerDefaults. */
+  maxDeliver?: number;
+  /** Per-consumer backoff durations in ms. Overrides connection-level consumerDefaults. */
+  backOff?: number[];
 }
 
 /** Internal registration for a Core NATS consumer. */
@@ -81,6 +91,12 @@ export async function startJSConsumers(
   registrations: JSConsumerRegistration<unknown>[],
   logger: Logger,
   propagator?: TextMapPropagator,
+  resolveStreamConfig?: StreamConfigResolver,
+  consumerDefaults?: ConsumerDefaults,
+  onNotification?: NotificationHandler,
+  onError?: ErrorNotificationHandler,
+  metrics?: MetricsRecorder,
+  routingKeyMapper?: RoutingKeyMapper,
 ): Promise<ConsumerHandle[]> {
   const handles: ConsumerHandle[] = [];
 
@@ -103,14 +119,19 @@ export async function startJSConsumers(
 
     // Ensure stream exists
     const streamSubjects = `${stream}.>`;
+    const streamCfg = resolveStreamConfig ? resolveStreamConfig(stream) : {};
     try {
       await jsm.streams.add({
         name: stream,
         subjects: [streamSubjects],
+        ...streamCfg,
       });
     } catch {
       try {
-        await jsm.streams.update(stream, { subjects: [streamSubjects] });
+        await jsm.streams.update(stream, {
+          subjects: [streamSubjects],
+          ...streamCfg,
+        });
       } catch {
         // Already exists with correct config
       }
@@ -138,17 +159,33 @@ export async function startJSConsumers(
       consumerCfg.filter_subjects = filterSubjects;
     }
 
+    // Apply MaxDeliver: per-consumer override > connection default.
+    const maxDeliver = first.maxDeliver ?? consumerDefaults?.maxDeliver;
+    if (maxDeliver !== undefined && maxDeliver > 0) {
+      consumerCfg.max_deliver = maxDeliver;
+    }
+
+    // Apply BackOff: per-consumer override > connection default.
+    const backOff = first.backOff ?? consumerDefaults?.backOff;
+    if (backOff !== undefined && backOff.length > 0) {
+      // NATS server expects nanoseconds; convert from milliseconds.
+      consumerCfg.backoff = backOff.map((ms) => ms * 1_000_000);
+    }
+
+    let consumerName = durable;
     try {
-      await jsm.consumers.add(stream, consumerCfg);
+      const ci = await jsm.consumers.add(stream, consumerCfg);
+      consumerName = ci.name;
     } catch {
       // Consumer exists with incompatible config — delete and recreate
       if (durable) {
         await jsm.consumers.delete(stream, durable);
-        await jsm.consumers.add(stream, consumerCfg);
+        const ci = await jsm.consumers.add(stream, consumerCfg);
+        consumerName = ci.name;
       }
     }
 
-    const consumer = await js.consumers.get(stream, durable);
+    const consumer = await js.consumers.get(stream, consumerName);
     const messages: ConsumerMessages = await consumer.consume();
 
     handles.push({ stop() { messages.stop(); } });
@@ -164,6 +201,11 @@ export async function startJSConsumers(
           routingKey = subject.substring(dotIdx + 1);
         }
 
+        const consumerName = durable ?? serviceName;
+        const mappedKey = mapRoutingKey(routingKey, routingKeyMapper);
+
+        metrics?.eventReceived(consumerName, mappedKey);
+
         let handler: EventHandler<unknown> | undefined;
         for (const [pattern, h] of handlerMap) {
           if (matchRoutingKey(pattern, routingKey)) {
@@ -173,6 +215,7 @@ export async function startJSConsumers(
         }
         if (!handler) {
           logger.warn(`[gomessaging/nats] No handler for routingKey=${routingKey} on stream=${stream}`);
+          metrics?.eventWithoutHandler(consumerName, mappedKey);
           msg.nak();
           continue;
         }
@@ -188,7 +231,7 @@ export async function startJSConsumers(
 
         const metadata = metadataFromHeaders(headers);
         const deliveryInfo = {
-          destination: durable ?? serviceName,
+          destination: consumerName,
           source: stream,
           key: routingKey,
           headers,
@@ -202,6 +245,7 @@ export async function startJSConsumers(
           payload = JSON.parse(new TextDecoder().decode(msg.data));
         } catch {
           logger.error(`[gomessaging/nats] Failed to parse message on ${subject}`);
+          metrics?.eventNotParsable(consumerName, mappedKey);
           msg.term();
           continue;
         }
@@ -212,11 +256,28 @@ export async function startJSConsumers(
           payload,
         };
 
+        const startTime = Date.now();
         try {
           await handler(event);
+          const durationMs = Date.now() - startTime;
+          metrics?.eventAck(consumerName, mappedKey, durationMs);
+          onNotification?.({
+            deliveryInfo,
+            durationMs,
+            source: "CONSUMER",
+          });
           msg.ack();
         } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
+          const durationMs = Date.now() - startTime;
+          metrics?.eventNack(consumerName, mappedKey, durationMs);
+          const errObj = err instanceof Error ? err : new Error(String(err));
+          onError?.({
+            deliveryInfo,
+            durationMs,
+            source: "CONSUMER",
+            error: errObj,
+          });
+          const errMsg = errObj.message;
           if (errMsg.includes(ErrParseJSON)) {
             logger.warn(`[gomessaging/nats] Parse error, terminating: ${errMsg}`);
             msg.term();
@@ -247,6 +308,10 @@ export function startCoreConsumers(
   registrations: CoreConsumerRegistration<unknown, unknown>[],
   logger: Logger,
   propagator?: TextMapPropagator,
+  onNotification?: NotificationHandler,
+  onError?: ErrorNotificationHandler,
+  metrics?: MetricsRecorder,
+  routingKeyMapper?: RoutingKeyMapper,
 ): ConsumerHandle[] {
   const handles: ConsumerHandle[] = [];
 
@@ -257,6 +322,9 @@ export function startCoreConsumers(
           logger.error(`[gomessaging/nats] Subscription error on ${reg.subject}: ${_err.message}`);
           return;
         }
+
+        const mappedKey = mapRoutingKey(reg.routingKey, routingKeyMapper);
+        metrics?.eventReceived(serviceName, mappedKey);
 
         const headers = fromNATSHeaders(msg.headers);
         const deliveryInfo = {
@@ -276,6 +344,7 @@ export function startCoreConsumers(
           payload = JSON.parse(new TextDecoder().decode(msg.data));
         } catch {
           logger.error(`[gomessaging/nats] Failed to parse message on ${reg.subject}`);
+          metrics?.eventNotParsable(serviceName, mappedKey);
           return;
         }
 
@@ -286,6 +355,7 @@ export function startCoreConsumers(
           payload,
         };
 
+        const startTime = Date.now();
         try {
           if (reg.requestReply) {
             const respHandler = reg.handler as RequestResponseEventHandler<unknown, unknown>;
@@ -295,11 +365,26 @@ export function startCoreConsumers(
           } else {
             await (reg.handler as EventHandler<unknown>)(event);
           }
+          const durationMs = Date.now() - startTime;
+          metrics?.eventAck(serviceName, mappedKey, durationMs);
+          onNotification?.({
+            deliveryInfo,
+            durationMs,
+            source: "CONSUMER",
+          });
         } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          logger.error(`[gomessaging/nats] Handler failed on ${reg.subject}: ${errMsg}`);
+          const durationMs = Date.now() - startTime;
+          metrics?.eventNack(serviceName, mappedKey, durationMs);
+          const errObj = err instanceof Error ? err : new Error(String(err));
+          onError?.({
+            deliveryInfo,
+            durationMs,
+            source: "CONSUMER",
+            error: errObj,
+          });
+          logger.error(`[gomessaging/nats] Handler failed on ${reg.subject}: ${errObj.message}`);
           if (reg.requestReply && msg.reply) {
-            const errResp = new TextEncoder().encode(JSON.stringify({ error: errMsg }));
+            const errResp = new TextEncoder().encode(JSON.stringify({ error: errObj.message }));
             msg.respond(errResp);
           }
         }

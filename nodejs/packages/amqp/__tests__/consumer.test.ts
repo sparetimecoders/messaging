@@ -77,6 +77,39 @@ function createMessage(
   } as import("amqplib").ConsumeMessage;
 }
 
+function createLegacyMessage(
+  routingKey: string,
+  payload: unknown,
+): import("amqplib").ConsumeMessage {
+  return {
+    content: Buffer.from(JSON.stringify(payload)),
+    fields: {
+      deliveryTag: 1,
+      redelivered: false,
+      exchange: "events.topic.exchange",
+      routingKey,
+      consumerTag: "test-tag",
+      messageCount: undefined,
+    },
+    properties: {
+      headers: { "x-custom": "some-value" },
+      contentType: "application/json",
+      contentEncoding: undefined,
+      deliveryMode: undefined,
+      priority: undefined,
+      correlationId: undefined,
+      replyTo: undefined,
+      expiration: undefined,
+      messageId: undefined,
+      timestamp: undefined,
+      type: undefined,
+      userId: undefined,
+      appId: undefined,
+      clusterId: undefined,
+    },
+  } as import("amqplib").ConsumeMessage;
+}
+
 function createInvalidJsonMessage(
   routingKey: string,
 ): import("amqplib").ConsumeMessage {
@@ -305,5 +338,126 @@ describe("QueueConsumer", () => {
     expect(silentLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining("test-queue"),
     );
+  });
+
+  it("ignores messages after stop() is called", async () => {
+    const handler = vi.fn().mockResolvedValue(undefined);
+    consumer.addHandler("order.created", handler);
+    await consumer.consume(channel as unknown as import("amqplib").Channel);
+
+    consumer.stop();
+
+    const msg = createMessage("order.created", { orderId: "123" });
+    channel.deliverMessage(msg);
+
+    // Handler should not be called after stop
+    expect(handler).not.toHaveBeenCalled();
+    expect(channel.ack).not.toHaveBeenCalled();
+    expect(channel.nack).not.toHaveBeenCalled();
+  });
+
+  it("logs consumer loop exit on stop()", () => {
+    consumer.stop();
+
+    expect(silentLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("consumer loop exited, delivery channel closed"),
+    );
+    expect(consumer.isStopped()).toBe(true);
+  });
+
+  it("only logs once on multiple stop() calls", () => {
+    consumer.stop();
+    consumer.stop();
+
+    const stopCalls = silentLogger.error.mock.calls.filter(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("consumer loop exited"),
+    );
+    expect(stopCalls).toHaveLength(1);
+  });
+
+  describe("legacySupport", () => {
+    it("enriches metadata for messages without CE headers when legacySupport is enabled", async () => {
+      const legacyConsumer = new QueueConsumer(
+        "test-queue", silentLogger, undefined, undefined, undefined, undefined, undefined, true,
+      );
+      const handler = vi.fn().mockResolvedValue(undefined);
+      legacyConsumer.addHandler("order.created", handler);
+      await legacyConsumer.consume(channel as unknown as import("amqplib").Channel);
+
+      const msg = createLegacyMessage("order.created", { orderId: "legacy-1" });
+      channel.deliverMessage(msg);
+
+      await vi.waitFor(() => {
+        expect(handler).toHaveBeenCalledOnce();
+      });
+      const event = handler.mock.calls[0][0];
+      expect(event.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+      expect(event.type).toBe("order.created");
+      expect(event.source).toBe("events.topic.exchange");
+      expect(event.dataContentType).toBe("application/json");
+      expect(event.specVersion).toBe(CESpecVersionValue);
+      expect(event.timestamp).toBeTruthy();
+      expect(channel.ack).toHaveBeenCalledWith(msg);
+    });
+
+    it("does not enrich metadata for messages WITH CE headers when legacySupport is enabled", async () => {
+      const legacyConsumer = new QueueConsumer(
+        "test-queue", silentLogger, undefined, undefined, undefined, undefined, undefined, true,
+      );
+      const handler = vi.fn().mockResolvedValue(undefined);
+      legacyConsumer.addHandler("order.created", handler);
+      await legacyConsumer.consume(channel as unknown as import("amqplib").Channel);
+
+      const msg = createMessage("order.created", { orderId: "ce-1" });
+      channel.deliverMessage(msg);
+
+      await vi.waitFor(() => {
+        expect(handler).toHaveBeenCalledOnce();
+      });
+      const event = handler.mock.calls[0][0];
+      expect(event.id).toBe("test-id-123");
+      expect(event.source).toBe("test-publisher");
+    });
+
+    it("does not enrich metadata when legacySupport is disabled (default)", async () => {
+      const handler = vi.fn().mockResolvedValue(undefined);
+      consumer.addHandler("order.created", handler);
+      await consumer.consume(channel as unknown as import("amqplib").Channel);
+
+      const msg = createLegacyMessage("order.created", { orderId: "legacy-2" });
+      channel.deliverMessage(msg);
+
+      await vi.waitFor(() => {
+        expect(handler).toHaveBeenCalledOnce();
+      });
+      const event = handler.mock.calls[0][0];
+      expect(event.id).toBe("");
+      expect(event.type).toBe("");
+      expect(event.source).toBe("");
+    });
+
+    it("logs debug messages for legacy message detection and enrichment", async () => {
+      const legacyConsumer = new QueueConsumer(
+        "test-queue", silentLogger, undefined, undefined, undefined, undefined, undefined, true,
+      );
+      const handler = vi.fn().mockResolvedValue(undefined);
+      legacyConsumer.addHandler("order.created", handler);
+      await legacyConsumer.consume(channel as unknown as import("amqplib").Channel);
+
+      const msg = createLegacyMessage("order.created", { data: true });
+      channel.deliverMessage(msg);
+
+      await vi.waitFor(() => {
+        expect(handler).toHaveBeenCalledOnce();
+      });
+      expect(silentLogger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("legacy message detected"),
+      );
+      expect(silentLogger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("enriched legacy message with synthetic metadata"),
+      );
+    });
   });
 });

@@ -18,7 +18,8 @@
  */
 
 export { Connection } from "./connection.js";
-export type { ConnectionOptions } from "./connection.js";
-export { Publisher } from "./publisher.js";
+export type { ConnectionOptions, ConsumerOptions } from "./connection.js";
+export { Publisher, WithoutPublisherConfirms } from "./publisher.js";
+export type { PublisherOptions } from "./publisher.js";
 export { QueueConsumer } from "./consumer.js";
 export { injectToHeaders, extractToContext } from "./tracing.js";

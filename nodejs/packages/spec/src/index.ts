@@ -15,6 +15,11 @@ export type {
   Topology,
   EventHandler,
   RequestResponseEventHandler,
+  NotificationSource,
+  Notification,
+  ErrorNotification,
+  NotificationHandler,
+  ErrorNotificationHandler,
 } from "./types.js";
 export { ErrParseJSON } from "./types.js";
 
@@ -47,7 +52,19 @@ export {
   CESubject,
   CEDataSchema,
   CECorrelationID,
+  CEAttrSpecVersion,
+  CEAttrType,
+  CEAttrSource,
+  CEAttrID,
+  CEAttrTime,
+  CEAttrDataContentType,
+  CEAttrSubject,
+  CEAttrCorrelationID,
   CERequiredAttributes,
+  AMQPCEHeaderKey,
+  normalizeCEHeaders,
+  hasCEHeaders,
+  enrichLegacyMetadata,
   metadataFromHeaders,
   validateCEHeaders,
 } from "./cloudevents.js";
@@ -63,3 +80,7 @@ export { mermaid } from "./visualize.js";
 
 // Topology (re-exports)
 export {} from "./topology.js";
+
+// Metrics
+export type { MetricsRecorder, RoutingKeyMapper, MetricsOptions } from "./metrics.js";
+export { mapRoutingKey } from "./metrics.js";

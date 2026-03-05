@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/spec",
     "packages/amqp",
-    "packages/nats"
+    "packages/nats",
+    "tck-adapters"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
@@ -13,6 +14,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }
