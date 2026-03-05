@@ -223,4 +223,3 @@ func Test_ServiceRequestConsumer_ExchangeDeclareFail(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "failed to create exchange")
 }
-
