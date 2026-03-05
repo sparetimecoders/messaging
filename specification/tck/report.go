@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
 )
 
 // PhaseResult records the outcome of a single TCK phase.

@@ -30,7 +30,7 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // TypeMapper resolves a routing key to a concrete Go type.

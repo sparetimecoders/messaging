@@ -31,8 +31,8 @@ import (
 	"github.com/google/uuid"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/sparetimecoders/gomessaging/spec"
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
 )
 
 // natsBrokerClient implements BrokerClient for NATS JetStream.

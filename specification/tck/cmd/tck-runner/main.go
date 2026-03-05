@@ -36,8 +36,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
-	"github.com/sparetimecoders/gomessaging/tck"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/tck"
 )
 
 func main() {

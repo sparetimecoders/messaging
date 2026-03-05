@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sparetimecoders/gomessaging/amqp"
-	"github.com/sparetimecoders/gomessaging/nats"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/golang/amqp"
+	"github.com/sparetimecoders/messaging/golang/nats"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // SSEEvent is an event sent to the browser via Server-Sent Events.

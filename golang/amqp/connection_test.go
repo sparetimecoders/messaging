@@ -31,7 +31,7 @@ import (
 	"testing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -263,7 +263,7 @@ func Test_FailingSetupFunc(t *testing.T) {
 	channel := NewMockAmqpChannel()
 	conn := mockConnection(channel)
 	err := conn.Start(context.Background(), func(c *Connection) error { return nil }, func(c *Connection) error { return fmt.Errorf("error message") })
-	require.EqualError(t, err, "setup function <github.com/sparetimecoders/gomessaging/amqp.Test_FailingSetupFunc.func2> failed: error message")
+	require.EqualError(t, err, "setup function <github.com/sparetimecoders/messaging/golang/amqp.Test_FailingSetupFunc.func2> failed: error message")
 }
 
 func Test_AmqpConfig(t *testing.T) {

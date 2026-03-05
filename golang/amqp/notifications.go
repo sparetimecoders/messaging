@@ -22,7 +22,7 @@
 
 package amqp
 
-import "github.com/sparetimecoders/gomessaging/spec"
+import "github.com/sparetimecoders/messaging/specification/spec"
 
 func notifyEventHandlerSucceed(ch chan<- spec.Notification, info spec.DeliveryInfo, took int64) {
 	if ch != nil {

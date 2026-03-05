@@ -30,9 +30,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sparetimecoders/gomessaging/spec"
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
-	"github.com/sparetimecoders/gomessaging/tck"
+	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/tck"
 	"github.com/stretchr/testify/require"
 )
 
@@ -167,7 +167,7 @@ func TestIntegrationTCKSubprocess(t *testing.T) {
 	// Build the nats-adapter binary from the tck-adapters module.
 	binDir := t.TempDir()
 	binPath := filepath.Join(binDir, "nats-adapter")
-	build := exec.Command("go", "build", "-o", binPath, "github.com/sparetimecoders/gomessaging/tck-adapters/cmd/nats-adapter")
+	build := exec.Command("go", "build", "-o", binPath, "github.com/sparetimecoders/messaging/golang/tck-adapters/cmd/nats-adapter")
 	out, err := build.CombinedOutput()
 	require.NoError(t, err, "failed to build nats-adapter: %s", out)
 

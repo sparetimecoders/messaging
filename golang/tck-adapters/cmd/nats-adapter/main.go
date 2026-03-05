@@ -33,11 +33,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sparetimecoders/gomessaging/nats"
-	"github.com/sparetimecoders/gomessaging/spec"
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
-	"github.com/sparetimecoders/gomessaging/tck"
-	"github.com/sparetimecoders/gomessaging/tck/adapterutil"
+	"github.com/sparetimecoders/messaging/golang/nats"
+	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/tck"
+	"github.com/sparetimecoders/messaging/specification/tck/adapterutil"
 )
 
 func main() {

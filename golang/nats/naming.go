@@ -25,7 +25,7 @@ package nats
 import (
 	"fmt"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 const defaultEventStreamName = "events"

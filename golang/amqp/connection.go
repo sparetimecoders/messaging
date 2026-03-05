@@ -33,7 +33,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -224,7 +224,7 @@ func version() string {
 	// NOTE: this doesn't work outside of a build, se we can't really test it
 	if x, ok := debug.ReadBuildInfo(); ok {
 		for _, y := range x.Deps {
-			if y.Path == "github.com/sparetimecoders/gomessaging/amqp" {
+			if y.Path == "github.com/sparetimecoders/messaging/golang/amqp" {
 				return y.Version
 			}
 		}

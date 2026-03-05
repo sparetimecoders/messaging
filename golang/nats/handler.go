@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // wrappedHandler is internally used to wrap the generic EventHandler

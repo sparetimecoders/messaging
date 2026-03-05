@@ -29,7 +29,7 @@ import (
 	"reflect"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 type (

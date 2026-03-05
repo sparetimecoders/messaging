@@ -30,7 +30,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,7 +114,7 @@ type ServiceHandle struct {
 }
 
 // Deprecated: IntegrationAdapter is superseded by tck.Adapter in the
-// github.com/sparetimecoders/gomessaging/tck module, which provides
+// github.com/sparetimecoders/messaging/specification/tck module, which provides
 // randomized service names, nonce injection, and TCK-owned broker validation.
 type IntegrationAdapter interface {
 	TransportKey() string
@@ -209,7 +209,7 @@ func PublisherKey(intent SetupIntent) string {
 }
 
 // Deprecated: RunIntegrationTCK is superseded by tck.RunTCK in the
-// github.com/sparetimecoders/gomessaging/tck module.
+// github.com/sparetimecoders/messaging/specification/tck module.
 func RunIntegrationTCK(t *testing.T, fixturePath string, adapter IntegrationAdapter) {
 	t.Helper()
 	scenarios := LoadTCKScenarios(t, fixturePath)
@@ -227,7 +227,7 @@ func RunIntegrationTCK(t *testing.T, fixturePath string, adapter IntegrationAdap
 }
 
 // Deprecated: RunIntegrationTCKScenario is superseded by tck.RunScenario in the
-// github.com/sparetimecoders/gomessaging/tck module.
+// github.com/sparetimecoders/messaging/specification/tck module.
 func RunIntegrationTCKScenario(t *testing.T, adapter IntegrationAdapter, scenario TCKScenario) {
 	t.Helper()
 	key := adapter.TransportKey()

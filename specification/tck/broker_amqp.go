@@ -33,8 +33,8 @@ import (
 
 	"github.com/google/uuid"
 	amqplib "github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
 )
 
 // amqpBrokerClient implements BrokerClient for RabbitMQ.

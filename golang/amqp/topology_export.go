@@ -28,7 +28,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // CollectTopology runs the given setup functions against a no-op channel to

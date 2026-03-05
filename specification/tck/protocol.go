@@ -25,8 +25,8 @@ package tck
 import (
 	"encoding/json"
 
-	"github.com/sparetimecoders/gomessaging/spec"
-	"github.com/sparetimecoders/gomessaging/spec/spectest"
+	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging/specification/spec/spectest"
 )
 
 // ProtocolVersion is the current version of the TCK subprocess protocol.

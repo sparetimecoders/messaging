@@ -27,14 +27,14 @@ import (
 	"fmt"
 
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const tracerName = "github.com/sparetimecoders/gomessaging/nats"
+const tracerName = "github.com/sparetimecoders/messaging/golang/nats"
 
 var (
 	attrMessagingSystem       = attribute.String("messaging.system", "nats")

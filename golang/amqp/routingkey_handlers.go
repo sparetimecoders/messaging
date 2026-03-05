@@ -23,7 +23,7 @@
 package amqp
 
 import (
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // routingKeyHandler holds the mapping from routing key to a specific handler

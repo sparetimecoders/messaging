@@ -26,7 +26,7 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // CollectTopology runs the given setup functions against a no-op connection to

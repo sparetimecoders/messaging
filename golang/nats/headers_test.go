@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"github.com/stretchr/testify/assert"
 )
 

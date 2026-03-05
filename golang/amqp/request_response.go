@@ -26,7 +26,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // RequestResponseHandler is a convenience func to set up ServiceRequestConsumer and combines it with

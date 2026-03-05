@@ -27,14 +27,14 @@ import (
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const tracerName = "github.com/sparetimecoders/gomessaging/amqp"
+const tracerName = "github.com/sparetimecoders/messaging/golang/amqp"
 
 // OTel semantic convention attribute keys for messaging.
 // Using string constants to avoid a dependency on the semconv package.

@@ -1,12 +1,12 @@
-module github.com/sparetimecoders/gomessaging/demo
+module github.com/sparetimecoders/messaging/demo/go
 
 go 1.24.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/sparetimecoders/gomessaging/amqp v0.0.0
-	github.com/sparetimecoders/gomessaging/nats v0.0.0
-	github.com/sparetimecoders/gomessaging/spec v0.0.0
+	github.com/sparetimecoders/messaging/golang/amqp v0.0.0
+	github.com/sparetimecoders/messaging/golang/nats v0.0.0
+	github.com/sparetimecoders/messaging/specification/spec v0.0.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.40.0
@@ -47,7 +47,7 @@ require (
 )
 
 replace (
-	github.com/sparetimecoders/gomessaging/amqp => ../../golang/amqp
-	github.com/sparetimecoders/gomessaging/nats => ../../golang/nats
-	github.com/sparetimecoders/gomessaging/spec => ../../specification/spec
+	github.com/sparetimecoders/messaging/golang/amqp => ../../golang/amqp
+	github.com/sparetimecoders/messaging/golang/nats => ../../golang/nats
+	github.com/sparetimecoders/messaging/specification/spec => ../../specification/spec
 )

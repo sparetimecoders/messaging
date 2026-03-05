@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 func TestCollectTopology_EventStreamPublisher(t *testing.T) {

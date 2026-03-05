@@ -25,7 +25,7 @@ package amqp
 import (
 	"testing"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"github.com/stretchr/testify/require"
 )
 

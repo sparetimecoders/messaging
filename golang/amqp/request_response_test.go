@@ -30,7 +30,7 @@ import (
 	"testing"
 
 	"github.com/rabbitmq/amqp091-go"
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,7 +60,7 @@ func Test_RequestResponseHandler(t *testing.T) {
 
 	require.Len(t, (*conn).queueConsumers.consumers, 1)
 	handler, _ := conn.queueConsumers.get("svc.direct.exchange.request.queue", "key")
-	require.Equal(t, "github.com/sparetimecoders/gomessaging/amqp.newWrappedHandler[...].func2", runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name())
+	require.Equal(t, "github.com/sparetimecoders/messaging/golang/amqp.newWrappedHandler[...].func2", runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name())
 	missing, exists := conn.queueConsumers.get("miggins", "key")
 	require.Nil(t, missing)
 	require.False(t, exists)

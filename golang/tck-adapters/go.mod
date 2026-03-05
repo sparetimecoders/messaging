@@ -1,12 +1,12 @@
-module github.com/sparetimecoders/gomessaging/tck-adapters
+module github.com/sparetimecoders/messaging/golang/tck-adapters
 
 go 1.24.0
 
 require (
-	github.com/sparetimecoders/gomessaging/amqp v0.0.0
-	github.com/sparetimecoders/gomessaging/nats v0.0.0
-	github.com/sparetimecoders/gomessaging/spec v0.0.0
-	github.com/sparetimecoders/gomessaging/tck v0.0.0
+	github.com/sparetimecoders/messaging/golang/amqp v0.0.0
+	github.com/sparetimecoders/messaging/golang/nats v0.0.0
+	github.com/sparetimecoders/messaging/specification/spec v0.0.0
+	github.com/sparetimecoders/messaging/specification/tck v0.0.0
 )
 
 require (
@@ -40,8 +40,8 @@ require (
 )
 
 replace (
-	github.com/sparetimecoders/gomessaging/amqp => ../amqp
-	github.com/sparetimecoders/gomessaging/nats => ../nats
-	github.com/sparetimecoders/gomessaging/spec => ../../specification/spec
-	github.com/sparetimecoders/gomessaging/tck => ../../specification/tck
+	github.com/sparetimecoders/messaging/golang/amqp => ../amqp
+	github.com/sparetimecoders/messaging/golang/nats => ../nats
+	github.com/sparetimecoders/messaging/specification/spec => ../../specification/spec
+	github.com/sparetimecoders/messaging/specification/tck => ../../specification/tck
 )

@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // EventStreamPublisher sets up a publisher for the default "events" stream.

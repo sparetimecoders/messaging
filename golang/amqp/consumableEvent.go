@@ -25,7 +25,7 @@ package amqp
 import (
 	"encoding/json"
 
-	"github.com/sparetimecoders/gomessaging/spec"
+	"github.com/sparetimecoders/messaging/specification/spec"
 )
 
 // unmarshalEvent is used internally to unmarshal a PublishableEvent

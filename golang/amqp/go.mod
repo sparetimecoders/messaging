@@ -1,4 +1,4 @@
-module github.com/sparetimecoders/gomessaging/amqp
+module github.com/sparetimecoders/messaging/golang/amqp
 
 go 1.24.0
 
@@ -8,8 +8,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/sparetimecoders/gomessaging/spec v0.0.0
-	github.com/sparetimecoders/gomessaging/tck v0.0.0
+	github.com/sparetimecoders/messaging/specification/spec v0.0.0
+	github.com/sparetimecoders/messaging/specification/tck v0.0.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.22.0
 	go.opentelemetry.io/otel/sdk v1.22.0
@@ -40,6 +40,6 @@ require (
 )
 
 replace (
-	github.com/sparetimecoders/gomessaging/spec => ../../specification/spec
-	github.com/sparetimecoders/gomessaging/tck => ../../specification/tck
+	github.com/sparetimecoders/messaging/specification/spec => ../../specification/spec
+	github.com/sparetimecoders/messaging/specification/tck => ../../specification/tck
 )
