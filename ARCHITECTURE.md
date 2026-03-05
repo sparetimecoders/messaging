@@ -2,26 +2,41 @@
 
 gomessaging is a multi-transport messaging library with a shared specification layer. It provides consistent naming conventions, topology validation, CloudEvents support, and observability across different message brokers.
 
-## Module Structure
+## Repository Structure
+
+The project is split across five repositories:
+
+| Repository | Contents | Module / Package |
+|------------|----------|------------------|
+| [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go spec + TCK + testdata + specverify + Node spec + docs + demos | `github.com/sparetimecoders/gomessaging/spec`, `@gomessaging/spec` |
+| [`go-messaging-amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go AMQP transport + TCK adapter | `github.com/sparetimecoders/gomessaging/amqp` |
+| [`go-messaging-nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go NATS transport + TCK adapter | `github.com/sparetimecoders/gomessaging/nats` |
+| [`nodejs-messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | Node AMQP transport + TCK adapter | `@gomessaging/amqp` |
+| [`nodejs-messaging-nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | Node NATS transport + TCK adapter | `@gomessaging/nats` |
+
+### This Repo
 
 ```
-gomessaging/
-  spec/           Shared specification (naming, topology, validation, CloudEvents)
-  amqp/           Go AMQP transport (RabbitMQ)
-  nats/           Go NATS transport (JetStream + Core)
-  nodejs/         Node.js/TypeScript implementation
-  cmd/demo/       Multi-service demo application (AMQP)
-  cmd/specverify/ CLI for topology validation and visualization
+.
+├── *.go                  Go spec module (naming, topology, validation, CloudEvents, visualization)
+├── spectest/             Conformance test helpers and assertion functions
+├── tck/                  Technology Compatibility Kit (runner, protocol, broker access)
+│   ├── adapterutil/      Reusable JSON-RPC handler for adapter implementations
+│   └── cmd/tck-runner/   TCK CLI runner
+├── specverify/           CLI for topology validation and visualization
+├── testdata/             Shared JSON test fixtures (canonical specification)
+├── nodejs-spec/          TypeScript implementation of the spec (mirrors Go)
+└── demo/                 Multi-transport demo application (Go + Node.js)
 ```
 
 ### Dependency Graph
 
 ```
-spec/  <──  amqp/
-       <──  nats/
-       <──  nodejs/packages/spec/  (mirrors Go spec)
-       <──  cmd/specverify/
-       <──  cmd/demo/  (uses amqp/)
+messaging (spec + tck)
+  ├── go-messaging-amqp     (Go module dep on spec + tck)
+  ├── go-messaging-nats     (Go module dep on spec + tck)
+  ├── nodejs-messaging-amqp (npm dep on @gomessaging/spec)
+  └── nodejs-messaging-nats (npm dep on @gomessaging/spec)
 ```
 
 The `spec` module has zero transport dependencies. Transport modules import `spec` for naming functions, types, and validation. This separation allows any language to implement a conformant transport by following the spec.
@@ -106,6 +121,8 @@ All messages carry [CloudEvents 1.0](https://cloudevents.io/) metadata in binary
 
 On consume, `ValidateCEHeaders()` checks for required attributes and logs warnings for missing or malformed values.
 
+AMQP uses the `cloudEvents:` prefix per the [AMQP binding spec](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/amqp-protocol-binding.md). Consumers normalize all prefix variants (`cloudEvents:*`, `cloudEvents_*`, `ce-*`) to the canonical `ce-` form.
+
 ## Observability
 
 ### Tracing (OpenTelemetry)
@@ -133,9 +150,9 @@ Each transport registers Prometheus metrics via `InitMetrics(registerer)`:
 - `{transport}_events_publish_failed` - failed publishes (counter)
 - `{transport}_events_publish_duration` - publish time histogram
 
-### Logging (log/slog)
+### Logging
 
-Structured logging via Go's `log/slog`. Configure with `WithLogger(*slog.Logger)` or defaults to `slog.Default()`.
+Go transports use `log/slog`. Node.js transports accept a logger interface compatible with `Pick<Console, "info" | "warn" | "error" | "debug">`.
 
 ## Topology Validation and Visualization
 
@@ -155,9 +172,21 @@ specverify visualize order-service.json notification-service.json
 specverify discover --url http://localhost:15672
 ```
 
+## Technology Compatibility Kit (TCK)
+
+The TCK verifies transport implementations against the specification using real brokers. It communicates with adapters via a JSON-RPC subprocess protocol and runs five verification phases:
+
+1. **Setup** - start services with randomized names
+2. **Topology** - verify declared exchanges, queues, streams
+3. **Broker State** - query broker directly to confirm resource creation
+4. **Delivery** - publish messages and verify correct delivery
+5. **Probes** - cross-validate with raw broker access
+
+Anti-tampering measures include randomized service names, nonce-injected payloads, and direct broker verification.
+
 ## Conformance Testing
 
-Shared JSON fixtures in `spec/testdata/` define expected behavior for all implementations:
+Shared JSON fixtures in `testdata/` define expected behavior for all implementations:
 
 | File | Purpose |
 |------|---------|
@@ -166,25 +195,25 @@ Shared JSON fixtures in `spec/testdata/` define expected behavior for all implem
 | `validate.json` | Verifies single and cross-topology validation rules |
 | `topology.json` | Verifies endpoint generation from setup intents |
 | `cloudevents.json` | Verifies CE header validation, metadata extraction, and message format |
+| `tck.json` | Multi-service integration scenarios with message flows |
 
 All fixtures are generated from Go source code by `TestGenerateFixtures` and are the canonical specification. Regenerate with:
 
 ```sh
-go test -run TestGenerateFixtures ./spec/...
+go test -run TestGenerateFixtures ./...
 ```
-
-The `spec/spectest` Go package and the fixture JSON files enable any language implementation to run the same conformance tests. See [spec/testdata/README.md](spec/testdata/README.md) for conformance levels (MUST vs SHOULD) and per-file format documentation.
 
 ## Implementing a New Transport
 
 To create a transport implementation in any language:
 
-1. **Implement the spec** - Port the naming functions and types from `spec/` (or use the shared fixture files)
-2. **Pass conformance tests** - Load `spec/testdata/*.json` fixtures and verify your implementation produces identical outputs
+1. **Implement the spec** - Port the naming functions and types from this module (or use the shared fixture files)
+2. **Pass conformance tests** - Load `testdata/*.json` fixtures and verify your implementation produces identical outputs
 3. **Map patterns to transport primitives**:
    - Event stream: topic exchange / JetStream stream with subject filtering
    - Service request: direct exchange / Core NATS request-reply
    - Service response: headers exchange / Core NATS reply
 4. **Add CloudEvents** - Set required CE headers on publish, validate on consume
 5. **Add observability** - OpenTelemetry tracing and Prometheus metrics following the same attribute conventions
-6. **Export topology** - Implement `CollectTopology()` so service topologies can be validated and visualized without connecting to a broker
+6. **Export topology** - Implement `Topology()` so service topologies can be validated and visualized without connecting to a broker
+7. **Write a TCK adapter** - Implement the subprocess protocol and pass all scenarios
