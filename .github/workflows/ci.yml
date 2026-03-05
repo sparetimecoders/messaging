@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  go-spec:
+    name: Go Spec Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: "1.24"
+      - run: go test ./...
+      - run: go vet ./...
+      - name: Test TCK
+        run: |
+          cd tck
+          go build ./...
+          go vet ./...
+      - name: Test specverify
+        run: |
+          cd specverify
+          go build ./...
+          go vet ./...
+
+  node-spec:
+    name: Node Spec Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "22"
+      - name: Install and test
+        working-directory: nodejs-spec
+        run: |
+          npm install
+          npm test

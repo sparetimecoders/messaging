@@ -1,0 +1,592 @@
+{
+  "single": [
+    {
+      "name": "valid AMQP event stream",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "orders",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Created"
+          },
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "queueName": "events.topic.exchange.queue.orders",
+            "routingKey": "User.Created"
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "empty service name",
+      "topology": {
+        "serviceName": "",
+        "endpoints": null
+      },
+      "expectedError": "service name must not be empty"
+    },
+    {
+      "name": "missing exchange name",
+      "topology": {
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "",
+            "exchangeName": "",
+            "exchangeKind": "topic",
+            "routingKey": "Event.X"
+          }
+        ]
+      },
+      "expectedError": "exchange name must not be empty"
+    },
+    {
+      "name": "consume missing queue",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Event.X"
+          }
+        ]
+      },
+      "expectedError": "consume endpoint must have a queue name"
+    },
+    {
+      "name": "bad topic exchange format",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "bad-exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Event.X"
+          }
+        ]
+      },
+      "expectedError": "must end with .topic.exchange"
+    },
+    {
+      "name": "valid AMQP request-response",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "email-service",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "service-request",
+            "exchangeName": "email-service.direct.exchange.request",
+            "exchangeKind": "direct",
+            "queueName": "email-service.direct.exchange.request.queue",
+            "routingKey": "email.send"
+          },
+          {
+            "direction": "publish",
+            "pattern": "service-response",
+            "exchangeName": "email-service.headers.exchange.response",
+            "exchangeKind": "headers"
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "missing routing key for topic exchange",
+      "topology": {
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic"
+          }
+        ]
+      },
+      "expectedError": "routing key must not be empty for topic exchange"
+    },
+    {
+      "name": "bad direct exchange format",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "service-request",
+            "exchangeName": "bad-exchange",
+            "exchangeKind": "direct",
+            "routingKey": "req.do"
+          }
+        ]
+      },
+      "expectedError": "must end with .direct.exchange.request"
+    },
+    {
+      "name": "bad headers exchange format",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "service-response",
+            "exchangeName": "bad-exchange",
+            "exchangeKind": "headers"
+          }
+        ]
+      },
+      "expectedError": "must end with .headers.exchange.response"
+    },
+    {
+      "name": "valid NATS event stream",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "orders",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Created"
+          },
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events",
+            "exchangeKind": "topic",
+            "queueName": "orders",
+            "routingKey": "Order.Created"
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "NATS ephemeral consumer no queue",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "dashboard",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Created",
+            "ephemeral": true
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "NATS exchange with AMQP suffix",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Event.X"
+          }
+        ]
+      },
+      "expectedError": "must not use AMQP suffix"
+    },
+    {
+      "name": "routing key with \u003e wildcard",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events",
+            "exchangeKind": "topic",
+            "queueName": "svc",
+            "routingKey": "Order.\u003e"
+          }
+        ]
+      },
+      "expectedError": "routing key must not contain '\u003e'"
+    },
+    {
+      "name": "NATS exchange with direct AMQP suffix",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "service-request",
+            "exchangeName": "svc.direct.exchange.request",
+            "exchangeKind": "direct",
+            "routingKey": "req.do"
+          }
+        ]
+      },
+      "expectedError": "must not use AMQP suffix"
+    },
+    {
+      "name": "NATS exchange with headers AMQP suffix",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "service-response",
+            "exchangeName": "svc.headers.exchange.response",
+            "exchangeKind": "headers"
+          }
+        ]
+      },
+      "expectedError": "must not use AMQP suffix"
+    },
+    {
+      "name": "NATS durable consume missing queue",
+      "topology": {
+        "transport": "nats",
+        "serviceName": "svc",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Created"
+          }
+        ]
+      },
+      "expectedError": "consume endpoint must have a queue name"
+    },
+    {
+      "name": "valid AMQP wildcard consumer",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "audit",
+        "endpoints": [
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "queueName": "events.topic.exchange.queue.audit",
+            "routingKey": "Order.#"
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "valid publisher no routing key for headers exchange",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "email-service",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "service-response",
+            "exchangeName": "email-service.headers.exchange.response",
+            "exchangeKind": "headers"
+          }
+        ]
+      },
+      "expectedError": null
+    },
+    {
+      "name": "multiple endpoints mixed valid",
+      "topology": {
+        "transport": "amqp",
+        "serviceName": "orders",
+        "endpoints": [
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Created"
+          },
+          {
+            "direction": "publish",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "routingKey": "Order.Updated"
+          },
+          {
+            "direction": "consume",
+            "pattern": "event-stream",
+            "exchangeName": "events.topic.exchange",
+            "exchangeKind": "topic",
+            "queueName": "events.topic.exchange.queue.orders",
+            "routingKey": "Payment.Completed"
+          }
+        ]
+      },
+      "expectedError": null
+    }
+  ],
+  "cross": [
+    {
+      "name": "missing publisher",
+      "topologies": [
+        {
+          "serviceName": "consumer-svc",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "events.topic.exchange.queue.consumer-svc",
+              "routingKey": "Order.Created"
+            }
+          ]
+        }
+      ],
+      "expectedError": "no service publishes it"
+    },
+    {
+      "name": "matching publisher",
+      "topologies": [
+        {
+          "serviceName": "orders",
+          "endpoints": [
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Created"
+            }
+          ]
+        },
+        {
+          "serviceName": "notifications",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "events.topic.exchange.queue.notifications",
+              "routingKey": "Order.Created"
+            }
+          ]
+        }
+      ],
+      "expectedError": null
+    },
+    {
+      "name": "wildcard consumer skipped",
+      "topologies": [
+        {
+          "serviceName": "audit",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "events.topic.exchange.queue.audit",
+              "routingKey": "Order.#"
+            }
+          ]
+        }
+      ],
+      "expectedError": null
+    },
+    {
+      "name": "NATS matching publisher",
+      "topologies": [
+        {
+          "transport": "nats",
+          "serviceName": "orders",
+          "endpoints": [
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Created"
+            }
+          ]
+        },
+        {
+          "transport": "nats",
+          "serviceName": "notifications",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events",
+              "exchangeKind": "topic",
+              "queueName": "notifications",
+              "routingKey": "Order.Created"
+            }
+          ]
+        }
+      ],
+      "expectedError": null
+    },
+    {
+      "name": "mixed transport no cross-match",
+      "topologies": [
+        {
+          "transport": "amqp",
+          "serviceName": "orders",
+          "endpoints": [
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Created"
+            }
+          ]
+        },
+        {
+          "transport": "nats",
+          "serviceName": "nats-consumer",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events",
+              "exchangeKind": "topic",
+              "queueName": "nats-consumer",
+              "routingKey": "Order.Created"
+            }
+          ]
+        }
+      ],
+      "expectedError": "no service publishes it"
+    },
+    {
+      "name": "multiple publishers multiple consumers",
+      "topologies": [
+        {
+          "serviceName": "orders",
+          "endpoints": [
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Created"
+            },
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Updated"
+            }
+          ]
+        },
+        {
+          "serviceName": "notifications",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "events.topic.exchange.queue.notifications",
+              "routingKey": "Order.Created"
+            }
+          ]
+        },
+        {
+          "serviceName": "analytics",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "events.topic.exchange.queue.analytics",
+              "routingKey": "Order.Updated"
+            }
+          ]
+        }
+      ],
+      "expectedError": null
+    },
+    {
+      "name": "consumer on different exchange than publisher",
+      "topologies": [
+        {
+          "serviceName": "orders",
+          "endpoints": [
+            {
+              "direction": "publish",
+              "pattern": "event-stream",
+              "exchangeName": "events.topic.exchange",
+              "exchangeKind": "topic",
+              "routingKey": "Order.Created"
+            }
+          ]
+        },
+        {
+          "serviceName": "consumer-svc",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "custom-stream",
+              "exchangeName": "audit.topic.exchange",
+              "exchangeKind": "topic",
+              "queueName": "audit.topic.exchange.queue.consumer-svc",
+              "routingKey": "Order.Created"
+            }
+          ]
+        }
+      ],
+      "expectedError": "no service publishes it"
+    },
+    {
+      "name": "NATS wildcard consumer skipped",
+      "topologies": [
+        {
+          "transport": "nats",
+          "serviceName": "audit",
+          "endpoints": [
+            {
+              "direction": "consume",
+              "pattern": "event-stream",
+              "exchangeName": "events",
+              "exchangeKind": "topic",
+              "queueName": "audit",
+              "routingKey": "Order.*"
+            }
+          ]
+        }
+      ],
+      "expectedError": null
+    }
+  ]
+}

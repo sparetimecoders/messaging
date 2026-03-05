@@ -1,8 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "."
-  },
-  "include": ["amqp-tck-adapter.ts", "nats-tck-adapter.ts"]
-}
