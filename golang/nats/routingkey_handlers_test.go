@@ -93,4 +93,3 @@ func TestRoutingKeyHandler_Empty(t *testing.T) {
 	assert.False(t, ok)
 	assert.Nil(t, h)
 }
-
