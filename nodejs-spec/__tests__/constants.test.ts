@@ -20,7 +20,7 @@ import {
 
 const fixturesPath = resolve(
   import.meta.dirname,
-  "../../../../specification/spec/testdata/constants.json",
+  "../../testdata/constants.json",
 );
 const fixtures = JSON.parse(readFileSync(fixturesPath, "utf-8"));
 

@@ -25,8 +25,8 @@ package tck
 import (
 	"encoding/json"
 
-	"github.com/sparetimecoders/messaging/specification/spec"
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // ProtocolVersion is the current version of the TCK subprocess protocol.

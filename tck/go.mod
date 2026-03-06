@@ -1,4 +1,4 @@
-module github.com/sparetimecoders/gomessaging/tck
+module github.com/sparetimecoders/messaging/tck
 
 go 1.24.0
 
@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.48.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/sparetimecoders/gomessaging/spec v0.0.0
+	github.com/sparetimecoders/messaging v0.0.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -21,4 +21,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/sparetimecoders/gomessaging/spec => ../
+replace github.com/sparetimecoders/messaging => ../

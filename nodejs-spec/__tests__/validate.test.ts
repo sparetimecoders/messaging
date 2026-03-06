@@ -6,7 +6,7 @@ import type { Topology } from "../src/types.js";
 
 const fixturesPath = resolve(
   import.meta.dirname,
-  "../../../../specification/spec/testdata/validate.json",
+  "../../testdata/validate.json",
 );
 const fixtures = JSON.parse(readFileSync(fixturesPath, "utf-8"));
 

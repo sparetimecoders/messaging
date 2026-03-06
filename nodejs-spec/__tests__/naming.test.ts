@@ -15,7 +15,7 @@ import {
 
 const fixturesPath = resolve(
   import.meta.dirname,
-  "../../../../specification/spec/testdata/naming.json",
+  "../../testdata/naming.json",
 );
 const fixtures = JSON.parse(readFileSync(fixturesPath, "utf-8"));
 

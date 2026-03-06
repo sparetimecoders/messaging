@@ -25,7 +25,7 @@ package tck
 import (
 	"testing"
 
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/spectest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +43,7 @@ func TestAllSupportedIntents(t *testing.T) {
 }
 
 func TestComputeCoverageMatrixFullCoverage(t *testing.T) {
-	scenarios, err := LoadScenariosFile("../spec/testdata/tck.json")
+	scenarios, err := LoadScenariosFile("../testdata/tck.json")
 	require.NoError(t, err)
 
 	matrix := ComputeCoverageMatrix(scenarios)

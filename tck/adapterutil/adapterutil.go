@@ -32,9 +32,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/sparetimecoders/messaging/specification/spec"
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
-	"github.com/sparetimecoders/messaging/specification/tck"
+	"github.com/sparetimecoders/messaging"
+	"github.com/sparetimecoders/messaging/spectest"
+	"github.com/sparetimecoders/messaging/tck"
 )
 
 // ServiceManager is implemented by transport-specific adapter binaries.

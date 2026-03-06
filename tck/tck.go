@@ -30,7 +30,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // Adapter provides transport-specific service startup for the TCK.

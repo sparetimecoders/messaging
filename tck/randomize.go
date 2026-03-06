@@ -28,7 +28,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // NameMapper handles bidirectional mapping between template and runtime service names.

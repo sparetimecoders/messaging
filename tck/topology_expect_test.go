@@ -25,8 +25,8 @@ package tck
 import (
 	"testing"
 
-	"github.com/sparetimecoders/messaging/specification/spec"
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging"
+	"github.com/sparetimecoders/messaging/spectest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -32,7 +32,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging"
 )
 
 const usage = `Usage: specverify <command> [flags] [args...]

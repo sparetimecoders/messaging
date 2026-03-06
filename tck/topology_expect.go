@@ -23,8 +23,8 @@
 package tck
 
 import (
-	"github.com/sparetimecoders/messaging/specification/spec"
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // ComputeExpectedEndpoints computes expected topology endpoints from intents

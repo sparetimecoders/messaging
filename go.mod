@@ -1,4 +1,4 @@
-module github.com/sparetimecoders/messaging/specification/spec
+module github.com/sparetimecoders/messaging
 
 go 1.23.0
 

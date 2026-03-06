@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // failNowSentinel is the panic value used by FailNow/Fatalf to abort the

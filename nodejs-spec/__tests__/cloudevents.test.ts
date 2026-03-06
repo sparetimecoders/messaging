@@ -12,7 +12,7 @@ import type { DeliveryInfo, Headers, Metadata } from "../src/types.js";
 
 const fixturesPath = resolve(
   import.meta.dirname,
-  "../../../../specification/spec/testdata/cloudevents.json",
+  "../../testdata/cloudevents.json",
 );
 const fixtures = JSON.parse(readFileSync(fixturesPath, "utf-8"));
 

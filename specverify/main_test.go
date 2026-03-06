@@ -290,7 +290,7 @@ func TestCheckFixtures(t *testing.T) {
 			"exchangeKind": "topic",
 			"routingKey": "X"
 		}]
-	}`), 0644)
+	}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", dir}, nil, &stdout, &stderr)
@@ -301,8 +301,8 @@ func TestCheckFixtures(t *testing.T) {
 
 func TestCheckFixturesVerbose(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"key":"value"}`), 0644)
-	os.WriteFile(filepath.Join(dir, "b.json"), []byte(`{"key":"value"}`), 0644)
+	os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"key":"value"}`), 0o644)
+	os.WriteFile(filepath.Join(dir, "b.json"), []byte(`{"key":"value"}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", "--verbose", dir}, nil, &stdout, &stderr)
@@ -316,7 +316,7 @@ func TestCheckFixturesVerbose(t *testing.T) {
 
 func TestCheckFixturesInvalidJSON(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "bad.json"), []byte(`{not json}`), 0644)
+	os.WriteFile(filepath.Join(dir, "bad.json"), []byte(`{not json}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", dir}, nil, &stdout, &stderr)
@@ -339,7 +339,7 @@ func TestCheckFixturesInvalidTopology(t *testing.T) {
 			"exchangeKind": "topic",
 			"routingKey": "X"
 		}]
-	}`), 0644)
+	}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", dir}, nil, &stdout, &stderr)
@@ -358,8 +358,8 @@ func TestCheckFixturesBadDir(t *testing.T) {
 
 func TestCheckFixturesSkipsSubdirs(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
-	os.WriteFile(filepath.Join(dir, "ok.json"), []byte(`{"key":"val"}`), 0644)
+	os.MkdirAll(filepath.Join(dir, "subdir"), 0o755)
+	os.WriteFile(filepath.Join(dir, "ok.json"), []byte(`{"key":"val"}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", dir}, nil, &stdout, &stderr)
@@ -371,7 +371,7 @@ func TestCheckFixturesSkipsSubdirs(t *testing.T) {
 func TestCheckFixturesNonTopologyJSON(t *testing.T) {
 	dir := t.TempDir()
 	// constants.json-like file (valid JSON, no serviceName)
-	os.WriteFile(filepath.Join(dir, "constants.json"), []byte(`{"defaultEventExchangeName": "events"}`), 0644)
+	os.WriteFile(filepath.Join(dir, "constants.json"), []byte(`{"defaultEventExchangeName": "events"}`), 0o644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"check-fixtures", "--verbose", dir}, nil, &stdout, &stderr)
@@ -406,7 +406,7 @@ func TestInvalidFormat(t *testing.T) {
 
 func TestCheckFixturesWithSpecTestdata(t *testing.T) {
 	// Run against the actual spec testdata if available
-	dir := filepath.Join("..", "..", "spec", "testdata")
+	dir := filepath.Join("..", "testdata")
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		t.Skip("spec/testdata not found, skipping")
 	}

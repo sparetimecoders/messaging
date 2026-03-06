@@ -30,7 +30,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/sparetimecoders/messaging/specification/spec/spectest"
+	"github.com/sparetimecoders/messaging/spectest"
 )
 
 // BrokerConfig holds connection details for direct broker access.

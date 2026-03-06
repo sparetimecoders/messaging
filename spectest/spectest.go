@@ -31,7 +31,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/messaging"
 )
 
 // SetupIntent describes a transport-agnostic setup action from the fixture file.

@@ -1,12 +1,12 @@
-module github.com/sparetimecoders/gomessaging/demo
+module github.com/sparetimecoders/messaging/demo
 
 go 1.24.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/sparetimecoders/gomessaging/amqp v0.1.0
-	github.com/sparetimecoders/gomessaging/nats v0.1.0
-	github.com/sparetimecoders/gomessaging/spec v0.1.0
+	github.com/sparetimecoders/go-messaging-amqp v0.1.0
+	github.com/sparetimecoders/go-messaging-nats v0.1.0
+	github.com/sparetimecoders/messaging v0.1.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.40.0
