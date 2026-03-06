@@ -21,13 +21,13 @@ go get github.com/sparetimecoders/messaging
 
 ```sh
 # AMQP transport
-npm install @gomessaging/amqp
+npm install @sparetimecoders/messaging-amqp
 
 # NATS transport
-npm install @gomessaging/nats
+npm install @sparetimecoders/messaging-nats
 
 # Spec library only
-npm install @gomessaging/spec
+npm install @sparetimecoders/messaging
 ```
 
 ## Your First Service
@@ -111,7 +111,7 @@ err = conn.Start(ctx,
 ### Node.js + AMQP
 
 ```typescript
-import { Connection } from "@gomessaging/amqp";
+import { Connection } from "@sparetimecoders/messaging-amqp";
 
 interface OrderCreated {
   orderId: string;

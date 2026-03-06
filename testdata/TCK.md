@@ -381,4 +381,4 @@ NATS_URL=nats://localhost:4222 tck-runner \
 - **Dead letter routing** -- verify messages are routed to DLX after consumer rejection
 - **Redelivery / backoff** -- verify MaxDeliver and BackOff consumer settings
 - **Request-reply response assertions** -- verify the response payload returned to the publisher
-- **Node.js adapters** -- implement `tck.test.ts` for `@gomessaging/nats` and `@gomessaging/amqp`
+- **Node.js adapters** -- implement `tck.test.ts` for `@sparetimecoders/messaging-nats` and `@sparetimecoders/messaging-amqp`

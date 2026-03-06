@@ -1,11 +1,11 @@
-# @gomessaging/spec
+# @sparetimecoders/messaging
 
 TypeScript implementation of the [messaging specification](https://github.com/sparetimecoders/messaging). This package mirrors the Go messaging library, providing identical naming functions, validation, CloudEvents handling, routing, and visualization for Node.js/TypeScript transport implementations.
 
 ## Installation
 
 ```sh
-npm install @gomessaging/spec
+npm install @sparetimecoders/messaging
 ```
 
 ## Usage
@@ -42,7 +42,7 @@ import {
   type ConsumableEvent,
   type Metadata,
   type EventHandler,
-} from "@gomessaging/spec";
+} from "@sparetimecoders/messaging";
 ```
 
 ### Naming

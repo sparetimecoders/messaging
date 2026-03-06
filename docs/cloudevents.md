@@ -76,7 +76,7 @@ warnings := messaging.ValidateCEHeaders(headers)
 ```
 
 ```typescript
-import { validateCEHeaders } from "@gomessaging/spec";
+import { validateCEHeaders } from "@sparetimecoders/messaging";
 
 const warnings = validateCEHeaders(headers);
 ```

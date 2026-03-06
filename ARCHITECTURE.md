@@ -8,11 +8,11 @@ The project is split across five repositories:
 
 | Repository | Contents | Module / Package |
 |------------|----------|------------------|
-| [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go + TypeScript shared library, TCK, testdata, specverify, docs | `github.com/sparetimecoders/messaging`, `@gomessaging/spec` |
+| [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go + TypeScript shared library, TCK, testdata, specverify, docs | `github.com/sparetimecoders/messaging`, `@sparetimecoders/messaging` |
 | [`go-messaging-amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go AMQP transport + TCK adapter | `github.com/sparetimecoders/go-messaging-amqp` |
 | [`go-messaging-nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go NATS transport + TCK adapter | `github.com/sparetimecoders/go-messaging-nats` |
-| [`nodejs-messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | Node AMQP transport + TCK adapter | `@gomessaging/amqp` |
-| [`nodejs-messaging-nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | Node NATS transport + TCK adapter | `@gomessaging/nats` |
+| [`nodejs-messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | Node AMQP transport + TCK adapter | `@sparetimecoders/messaging-amqp` |
+| [`nodejs-messaging-nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | Node NATS transport + TCK adapter | `@sparetimecoders/messaging-nats` |
 
 ### This Repo
 
@@ -34,8 +34,8 @@ The project is split across five repositories:
 messaging (spec + tck)
   ├── go-messaging-amqp     (Go module dep on spec + tck)
   ├── go-messaging-nats     (Go module dep on spec + tck)
-  ├── nodejs-messaging-amqp (npm dep on @gomessaging/spec)
-  └── nodejs-messaging-nats (npm dep on @gomessaging/spec)
+  ├── nodejs-messaging-amqp (npm dep on @sparetimecoders/messaging)
+  └── nodejs-messaging-nats (npm dep on @sparetimecoders/messaging)
 ```
 
 The `messaging` module has zero transport dependencies. Transport modules import `messaging` for naming functions, types, and validation. This separation allows any language to implement a conformant transport by following the spec.

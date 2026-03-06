@@ -8,7 +8,7 @@
   <a href="https://github.com/sparetimecoders/messaging/actions"><img alt="CI" src="https://github.com/sparetimecoders/messaging/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/sparetimecoders/messaging/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/sparetimecoders/messaging"></a>
   <a href="https://pkg.go.dev/github.com/sparetimecoders/messaging"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/sparetimecoders/messaging.svg"></a>
-  <a href="https://www.npmjs.com/package/@gomessaging/spec"><img alt="npm" src="https://img.shields.io/npm/v/@gomessaging/spec"></a>
+  <a href="https://www.npmjs.com/package/@sparetimecoders/messaging"><img alt="npm" src="https://img.shields.io/npm/v/@sparetimecoders/messaging"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 </p>
 
@@ -29,19 +29,19 @@ messaging defines a **shared specification** for event-driven microservices that
 | Package | Language | Description |
 |---------|----------|-------------|
 | [`messaging`](https://github.com/sparetimecoders/messaging) | Go | Specification, TCK runner, validation, visualization |
-| [`@gomessaging/spec`](https://github.com/sparetimecoders/messaging/tree/main/typescript) | TypeScript | Shared messaging library (mirrors Go) |
+| [`@sparetimecoders/messaging`](https://github.com/sparetimecoders/messaging/tree/main/typescript) | TypeScript | Shared messaging library (mirrors Go) |
 | [`messaging/amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go | AMQP/RabbitMQ transport |
 | [`messaging/nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go | NATS/JetStream transport |
-| [`@gomessaging/amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | TypeScript | AMQP/RabbitMQ transport |
-| [`@gomessaging/nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | TypeScript | NATS/JetStream transport |
+| [`@sparetimecoders/messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | TypeScript | AMQP/RabbitMQ transport |
+| [`@sparetimecoders/messaging-nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | TypeScript | NATS/JetStream transport |
 
 ```
 messaging (this repo)
   spec + tck + testdata + specverify + typescript
     ├── go-messaging-amqp    (depends on spec + tck)
     ├── go-messaging-nats    (depends on spec + tck)
-    ├── nodejs-messaging-amqp (depends on @gomessaging/spec)
-    └── nodejs-messaging-nats (depends on @gomessaging/spec)
+    ├── nodejs-messaging-amqp (depends on @sparetimecoders/messaging)
+    └── nodejs-messaging-nats (depends on @sparetimecoders/messaging)
 ```
 
 ## Quick Start
@@ -74,7 +74,7 @@ pub.Publish(ctx, "Order.Created", OrderCreated{OrderID: "abc-123", Amount: 42})
 ### Node.js / TypeScript
 
 ```typescript
-import { Connection } from "@gomessaging/amqp";
+import { Connection } from "@sparetimecoders/messaging-amqp";
 
 const conn = new Connection({ url: "amqp://localhost:5672", serviceName: "order-service" });
 
