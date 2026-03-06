@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    "typescript": {
+      "release-type": "node",
+      "component": "messaging"
+    }
+  }
+}
