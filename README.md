@@ -62,8 +62,7 @@ See the [docs/](docs/) directory for detailed guides:
 ├── specverify/           CLI for topology validation and visualization
 ├── testdata/             Shared JSON test fixtures (canonical specification)
 ├── typescript/           TypeScript shared messaging library (mirrors Go)
-├── docs/                 Implementor documentation
-└── ARCHITECTURE.md       System design overview
+└── docs/                 Implementor documentation
 ```
 
 ## Development
