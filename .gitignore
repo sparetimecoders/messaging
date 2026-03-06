@@ -10,3 +10,14 @@
 
 # Claude Code
 .claude/
+
+# Go
+go.work.sum
+
+# Node
+node_modules/
+dist/
+
+# Compiled Go binaries
+tck/tck-runner
+specverify/specverify

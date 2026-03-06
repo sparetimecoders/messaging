@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	goamqp "github.com/sparetimecoders/messaging/golang/amqp"
-	gonats "github.com/sparetimecoders/messaging/golang/nats"
+	goamqp "github.com/sparetimecoders/go-messaging-amqp"
+	gonats "github.com/sparetimecoders/go-messaging-nats"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"

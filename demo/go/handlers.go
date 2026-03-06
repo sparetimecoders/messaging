@@ -6,9 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"github.com/sparetimecoders/messaging/golang/amqp"
-	"github.com/sparetimecoders/messaging/golang/nats"
-	"github.com/sparetimecoders/messaging/specification/spec"
+	"github.com/sparetimecoders/go-messaging-amqp"
+	"github.com/sparetimecoders/go-messaging-nats"
+	"github.com/sparetimecoders/messaging"
 )
 
 // amqpSetups returns the AMQP setup functions for the go-demo service.
