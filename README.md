@@ -22,7 +22,7 @@ messaging defines a **shared specification** for event-driven microservices that
 - **CloudEvents 1.0** &mdash; all messages carry standardized metadata
 - **Conformance testing** &mdash; the TCK proves transport implementations are correct
 
-> **Documentation**: See the [docs/](docs/) directory for in-depth guides on [getting started](docs/getting-started.md), [communication patterns](docs/patterns.md), [naming conventions](docs/naming.md), [CloudEvents](docs/cloudevents.md), [topology tools](docs/topology.md), and [implementing a transport](docs/implementing.md).
+> **Documentation**: See the [docs/](docs/) directory for guides on [communication patterns](docs/patterns.md), [naming conventions](docs/naming.md), [CloudEvents](docs/cloudevents.md), [topology tools](docs/topology.md), and [implementing a transport](docs/implementing.md).
 
 ## Ecosystem
 
@@ -42,59 +42,6 @@ messaging (this repo)
     ├── go-messaging-nats    (depends on spec + tck)
     ├── nodejs-messaging-amqp (depends on @sparetimecoders/messaging)
     └── nodejs-messaging-nats (depends on @sparetimecoders/messaging)
-```
-
-## Quick Start
-
-### Go
-
-```go
-import (
-    "github.com/sparetimecoders/go-messaging-amqp"
-    "github.com/sparetimecoders/messaging"
-)
-
-// Create a publisher
-pub := amqp.NewPublisher()
-
-// Connect and declare topology
-conn, _ := amqp.NewFromURL("order-service", "amqp://localhost:5672/")
-conn.Start(ctx,
-    amqp.EventStreamPublisher(pub),
-    amqp.EventStreamConsumer("Order.Created", func(ctx context.Context, e messaging.ConsumableEvent[OrderCreated]) error {
-        fmt.Printf("Order %s from %s\n", e.Payload.OrderID, e.Source)
-        return nil
-    }),
-)
-
-// Publish an event
-pub.Publish(ctx, "Order.Created", OrderCreated{OrderID: "abc-123", Amount: 42})
-```
-
-### Node.js / TypeScript
-
-```typescript
-import { Connection } from "@sparetimecoders/messaging-amqp";
-
-const conn = new Connection({ url: "amqp://localhost:5672", serviceName: "order-service" });
-
-const pub = conn.addEventPublisher();
-conn.addEventConsumer("Order.Created", async (event) => {
-  console.log(`Order ${event.payload.orderId} from ${event.source}`);
-});
-
-await conn.start();
-await pub.publish("Order.Created", { orderId: "abc-123", amount: 42 });
-```
-
-The API is nearly identical across transports &mdash; swap `amqp` for `nats` and it works:
-
-```go
-conn, _ := nats.NewConnection("order-service", "nats://localhost:4222")
-conn.Start(ctx,
-    nats.EventStreamPublisher(pub),
-    nats.EventStreamConsumer("Order.Created", handler),
-)
 ```
 
 ## Communication Patterns

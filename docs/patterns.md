@@ -37,17 +37,7 @@ orders ──publish──>           │ events          │ ──Order.Create
 
 **Durable consumers** survive restarts. In AMQP, these use quorum queues. In NATS, durable pull consumers.
 
-```go
-// Go — durable consumer (default)
-amqp.EventStreamConsumer("Order.Created", handler)
-```
-
 **Transient consumers** auto-delete on disconnect. Useful for temporary subscriptions, live dashboards, or debugging.
-
-```go
-// Go — transient consumer
-amqp.TransientEventStreamConsumer("Order.Created", handler)
-```
 
 ### Wildcard Routing
 
@@ -80,12 +70,6 @@ audit-writer ──publish──>     │ audit           │ ──*──> aud
 - Isolation between bounded contexts
 - High-throughput streams that shouldn't compete with general events
 
-```go
-// Go — custom stream
-amqp.CustomStreamPublisher("audit", pub)
-amqp.CustomStreamConsumer("audit", "AuditEntry.Created", handler)
-```
-
 ## Service Request
 
 Synchronous request-reply between services. The caller sends a request and waits for a response.
@@ -108,20 +92,6 @@ caller <──response── │ billing.headers.exchange.response  │ <──�
 | **Response exchange** | `{service}.headers.exchange.response` (headers) | Built-in reply subject |
 | **Response queue** | `{service}.headers.exchange.response.queue.{caller}` | — |
 
-### Usage
-
-```go
-// Go — register as a request handler
-amqp.ServiceRequestConsumer("billing", "GetInvoice",
-    func(ctx context.Context, e messaging.ConsumableEvent[GetInvoiceRequest]) (Invoice, error) {
-        return lookupInvoice(e.Payload.InvoiceID)
-    })
-
-// Go — send a request
-amqp.ServiceRequestPublisher("billing", pub)
-response, err := pub.Request(ctx, "GetInvoice", GetInvoiceRequest{InvoiceID: "inv-456"})
-```
-
 In NATS, request-reply uses built-in response routing — no explicit response exchange needed.
 
 ## Service Response
@@ -143,12 +113,6 @@ Use for work queues where:
 - The sender knows the destination
 - Multiple workers compete for messages (competing consumers)
 - No fan-out needed
-
-```go
-// Go — publish directly to a queue
-amqp.QueuePublisher("email-queue", pub)
-pub.Publish(ctx, "", EmailTask{To: "user@example.com", Template: "welcome"})
-```
 
 ## Choosing a Pattern
 

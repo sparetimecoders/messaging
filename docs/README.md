@@ -1,25 +1,17 @@
 # messaging Documentation
 
-Welcome to the messaging specification documentation. This guide covers everything from getting started to implementing your own transport.
-
-## For Users
+Documentation for transport implementors. For end-user guides, see the individual transport repos.
 
 | Guide | Description |
 |-------|-------------|
-| [Getting Started](getting-started.md) | Install, configure, and send your first message |
-| [Communication Patterns](patterns.md) | The five messaging patterns and when to use each |
+| [Communication Patterns](patterns.md) | The five messaging patterns and broker mappings |
 | [Naming Conventions](naming.md) | How exchanges, queues, and streams are named |
 | [CloudEvents](cloudevents.md) | CloudEvents 1.0 metadata on every message |
 | [Topology Tools](topology.md) | Validation, visualization, and broker discovery |
-
-## For Implementers
-
-| Guide | Description |
-|-------|-------------|
-| [Implementing a Transport](implementing.md) | Step-by-step guide to building a conformant transport |
 | [Specification Reference](specification.md) | Formal rules, types, and contracts |
+| [Implementing a Transport](implementing.md) | Step-by-step guide to building a conformant transport |
 | [TCK Guide](tck.md) | Running and writing adapters for the conformance test suite |
-| [Test Fixtures](fixtures.md) | Shared JSON fixtures that define expected behavior |
+| [Test Fixtures](fixtures.md) | Shared JSON test fixtures that define expected behavior |
 
 ## Ecosystem
 
