@@ -1,6 +1,6 @@
 {
   "name": "@sparetimecoders/messaging",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Messaging specification and shared types for sparetimecoders messaging libraries",
   "license": "MIT",
   "repository": {
