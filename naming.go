@@ -23,7 +23,7 @@
 // Package spec defines the naming conventions, topology types, and validation
 // logic for the gomessaging framework. It has zero transport dependencies and
 // is shared across all transport implementations (AMQP, NATS, etc).
-package spec
+package messaging
 
 import (
 	"fmt"

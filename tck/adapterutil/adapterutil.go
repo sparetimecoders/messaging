@@ -44,7 +44,7 @@ type ServiceManager interface {
 
 // ServiceState holds the runtime state of a started service.
 type ServiceState struct {
-	Topology      spec.Topology
+	Topology      messaging.Topology
 	PublisherKeys []string
 	Publish       func(publisherKey, routingKey string, payload json.RawMessage, headers map[string]string) error
 	Received      func() []tck.ReceivedMessageWire

@@ -140,7 +140,7 @@ func (a *SubprocessAdapter) StartService(t spectest.T, serviceName string, inten
 	}
 
 	return &spectest.ServiceHandle{
-		Topology: func() spec.Topology {
+		Topology: func() messaging.Topology {
 			return result.Topology
 		},
 		Publishers: publisherKeys,

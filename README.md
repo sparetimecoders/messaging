@@ -29,7 +29,7 @@ gomessaging defines a **shared specification** for event-driven microservices th
 | Package | Language | Description |
 |---------|----------|-------------|
 | [`gomessaging/spec`](https://github.com/sparetimecoders/messaging) | Go | Specification, TCK runner, validation, visualization |
-| [`@gomessaging/spec`](https://github.com/sparetimecoders/messaging/tree/main/nodejs-spec) | TypeScript | Specification (mirrors Go) |
+| [`@gomessaging/spec`](https://github.com/sparetimecoders/messaging/tree/main/typescript) | TypeScript | Shared messaging library (mirrors Go) |
 | [`gomessaging/amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go | AMQP/RabbitMQ transport |
 | [`gomessaging/nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go | NATS/JetStream transport |
 | [`@gomessaging/amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | TypeScript | AMQP/RabbitMQ transport |
@@ -37,7 +37,7 @@ gomessaging defines a **shared specification** for event-driven microservices th
 
 ```
 messaging (this repo)
-  spec + tck + testdata + specverify + nodejs-spec
+  spec + tck + testdata + specverify + typescript
     ├── go-messaging-amqp    (depends on spec + tck)
     ├── go-messaging-nats    (depends on spec + tck)
     ├── nodejs-messaging-amqp (depends on @gomessaging/spec)
@@ -373,10 +373,9 @@ To create a conformant transport in any language:
 │   └── cmd/tck-runner/   TCK CLI runner
 ├── specverify/           CLI for topology validation and visualization
 ├── testdata/             Shared JSON test fixtures (canonical specification)
-├── nodejs-spec/          TypeScript implementation of the spec (mirrors Go)
-├── demo/                 Multi-transport demo application (Go + Node.js)
+├── typescript/           TypeScript shared messaging library (mirrors Go)
 ├── ARCHITECTURE.md       System design overview
-└── GAPS.md               Issue tracking and resolutions
+└── GAPS.md               Open spec gaps
 ```
 
 ## Development
@@ -393,12 +392,8 @@ go run ./cmd/tck-runner/ --adapter path/to/adapter
 go test -run TestGenerateFixtures ./...
 
 # Node.js spec tests
-cd nodejs-spec && npm install && npm test
+cd typescript && npm install && npm test
 ```
-
-## Migration from goamqp
-
-If you're migrating from [goamqp](https://github.com/sparetimecoders/goamqp), see the [migration guide](migrationdocs/MIGRATION.md).
 
 ## License
 

@@ -155,7 +155,7 @@ func LoadScenarios(t T, fixturePath string) []Scenario {
 }
 
 // AssertTopology verifies that actual topology endpoints match expected ones.
-func AssertTopology(t T, expected []ExpectedEndpoint, actual spec.Topology) {
+func AssertTopology(t T, expected []ExpectedEndpoint, actual messaging.Topology) {
 	t.Helper()
 	if len(actual.Endpoints) != len(expected) {
 		t.Errorf("endpoint count mismatch: got %d, want %d", len(actual.Endpoints), len(expected))
@@ -167,11 +167,11 @@ func AssertTopology(t T, expected []ExpectedEndpoint, actual spec.Topology) {
 }
 
 // RequireEndpointMatch finds and validates a matching endpoint in actuals.
-func RequireEndpointMatch(t T, expected ExpectedEndpoint, actuals []spec.Endpoint) {
+func RequireEndpointMatch(t T, expected ExpectedEndpoint, actuals []messaging.Endpoint) {
 	t.Helper()
 	for _, actual := range actuals {
-		if spec.EndpointDirection(expected.Direction) != actual.Direction ||
-			spec.Pattern(expected.Pattern) != actual.Pattern ||
+		if messaging.EndpointDirection(expected.Direction) != actual.Direction ||
+			messaging.Pattern(expected.Pattern) != actual.Pattern ||
 			expected.ExchangeName != actual.ExchangeName ||
 			expected.RoutingKey != actual.RoutingKey {
 			continue
@@ -185,7 +185,7 @@ func RequireEndpointMatch(t T, expected ExpectedEndpoint, actuals []spec.Endpoin
 		if expected.QueueNamePrefix != "" && !strings.HasPrefix(actual.QueueName, expected.QueueNamePrefix) {
 			continue
 		}
-		if spec.ExchangeKind(expected.ExchangeKind) != actual.ExchangeKind {
+		if messaging.ExchangeKind(expected.ExchangeKind) != actual.ExchangeKind {
 			t.Errorf("exchangeKind mismatch: got %q, want %q", actual.ExchangeKind, expected.ExchangeKind)
 		}
 		if expected.Ephemeral != actual.Ephemeral {

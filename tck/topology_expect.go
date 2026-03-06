@@ -64,13 +64,13 @@ func ComputeProbeTarget(transportKey string, probe ProbeMessage, services map[st
 	switch transportKey {
 	case "amqp":
 		return spectest.ProbeTarget{
-			Exchange:   spec.TopicExchangeName(baseExchange),
+			Exchange:   messaging.TopicExchangeName(baseExchange),
 			RoutingKey: probe.RoutingKey,
 		}
 	case "nats":
 		return spectest.ProbeTarget{
 			Stream:  baseExchange,
-			Subject: spec.NATSSubject(baseExchange, probe.RoutingKey),
+			Subject: messaging.NATSSubject(baseExchange, probe.RoutingKey),
 		}
 	}
 	return spectest.ProbeTarget{}
@@ -104,7 +104,7 @@ func resolveProbeExchange(probe ProbeMessage, services map[string]spectest.Servi
 func intentBaseExchange(intent spectest.SetupIntent) string {
 	switch intent.Pattern {
 	case "event-stream":
-		return spec.DefaultEventExchangeName
+		return messaging.DefaultEventExchangeName
 	case "custom-stream":
 		return intent.Exchange
 	case "service-request":
@@ -132,13 +132,13 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "publish",
 			Pattern:      "event-stream",
-			ExchangeName: spec.TopicExchangeName(spec.DefaultEventExchangeName),
-			ExchangeKind: spec.KindTopic,
+			ExchangeName: messaging.TopicExchangeName(messaging.DefaultEventExchangeName),
+			ExchangeKind: messaging.KindTopic,
 		}}
 
 	case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
-		exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
-		qName := spec.ServiceEventQueueName(exName, runtimeService)
+		exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
+		qName := messaging.ServiceEventQueueName(exName, runtimeService)
 		if intent.QueueSuffix != "" {
 			qName += "-" + intent.QueueSuffix
 		}
@@ -146,19 +146,19 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "event-stream",
 			ExchangeName: exName,
-			ExchangeKind: spec.KindTopic,
+			ExchangeKind: messaging.KindTopic,
 			QueueName:    qName,
 			RoutingKey:   intent.RoutingKey,
 		}}
 
 	case intent.Pattern == "event-stream" && intent.Direction == "consume" && intent.Ephemeral:
-		exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+		exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
 		return []spectest.ExpectedEndpoint{{
 			Direction:       "consume",
 			Pattern:         "event-stream",
 			ExchangeName:    exName,
-			ExchangeKind:    spec.KindTopic,
-			QueueNamePrefix: spec.ServiceEventQueueName(exName, runtimeService) + "-",
+			ExchangeKind:    messaging.KindTopic,
+			QueueNamePrefix: messaging.ServiceEventQueueName(exName, runtimeService) + "-",
 			RoutingKey:      intent.RoutingKey,
 			Ephemeral:       true,
 		}}
@@ -167,13 +167,13 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "publish",
 			Pattern:      "custom-stream",
-			ExchangeName: spec.TopicExchangeName(intent.Exchange),
-			ExchangeKind: spec.KindTopic,
+			ExchangeName: messaging.TopicExchangeName(intent.Exchange),
+			ExchangeKind: messaging.KindTopic,
 		}}
 
 	case intent.Pattern == "custom-stream" && intent.Direction == "consume" && !intent.Ephemeral:
-		exName := spec.TopicExchangeName(intent.Exchange)
-		qName := spec.ServiceEventQueueName(exName, runtimeService)
+		exName := messaging.TopicExchangeName(intent.Exchange)
+		qName := messaging.ServiceEventQueueName(exName, runtimeService)
 		if intent.QueueSuffix != "" {
 			qName += "-" + intent.QueueSuffix
 		}
@@ -181,19 +181,19 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "custom-stream",
 			ExchangeName: exName,
-			ExchangeKind: spec.KindTopic,
+			ExchangeKind: messaging.KindTopic,
 			QueueName:    qName,
 			RoutingKey:   intent.RoutingKey,
 		}}
 
 	case intent.Pattern == "custom-stream" && intent.Direction == "consume" && intent.Ephemeral:
-		exName := spec.TopicExchangeName(intent.Exchange)
+		exName := messaging.TopicExchangeName(intent.Exchange)
 		return []spectest.ExpectedEndpoint{{
 			Direction:       "consume",
 			Pattern:         "custom-stream",
 			ExchangeName:    exName,
-			ExchangeKind:    spec.KindTopic,
-			QueueNamePrefix: spec.ServiceEventQueueName(exName, runtimeService) + "-",
+			ExchangeKind:    messaging.KindTopic,
+			QueueNamePrefix: messaging.ServiceEventQueueName(exName, runtimeService) + "-",
 			RoutingKey:      intent.RoutingKey,
 			Ephemeral:       true,
 		}}
@@ -202,9 +202,9 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "consume",
 			Pattern:      "service-request",
-			ExchangeName: spec.ServiceRequestExchangeName(runtimeService),
-			ExchangeKind: spec.KindDirect,
-			QueueName:    spec.ServiceRequestQueueName(runtimeService),
+			ExchangeName: messaging.ServiceRequestExchangeName(runtimeService),
+			ExchangeKind: messaging.KindDirect,
+			QueueName:    messaging.ServiceRequestQueueName(runtimeService),
 			RoutingKey:   intent.RoutingKey,
 		}}
 
@@ -213,8 +213,8 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "publish",
 			Pattern:      "service-request",
-			ExchangeName: spec.ServiceRequestExchangeName(runtimeTarget),
-			ExchangeKind: spec.KindDirect,
+			ExchangeName: messaging.ServiceRequestExchangeName(runtimeTarget),
+			ExchangeKind: messaging.KindDirect,
 		}}
 
 	case intent.Pattern == "service-response" && intent.Direction == "consume":
@@ -222,9 +222,9 @@ func computeAMQPEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "consume",
 			Pattern:      "service-response",
-			ExchangeName: spec.ServiceResponseExchangeName(runtimeTarget),
-			ExchangeKind: spec.KindHeaders,
-			QueueName:    spec.ServiceResponseQueueName(runtimeTarget, runtimeService),
+			ExchangeName: messaging.ServiceResponseExchangeName(runtimeTarget),
+			ExchangeKind: messaging.KindHeaders,
+			QueueName:    messaging.ServiceResponseQueueName(runtimeTarget, runtimeService),
 			RoutingKey:   intent.RoutingKey,
 		}}
 
@@ -251,8 +251,8 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "publish",
 			Pattern:      "event-stream",
-			ExchangeName: spec.DefaultEventExchangeName,
-			ExchangeKind: spec.KindTopic,
+			ExchangeName: messaging.DefaultEventExchangeName,
+			ExchangeKind: messaging.KindTopic,
 		}}
 
 	case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
@@ -263,8 +263,8 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "consume",
 			Pattern:      "event-stream",
-			ExchangeName: spec.DefaultEventExchangeName,
-			ExchangeKind: spec.KindTopic,
+			ExchangeName: messaging.DefaultEventExchangeName,
+			ExchangeKind: messaging.KindTopic,
 			QueueName:    qName,
 			RoutingKey:   intent.RoutingKey,
 		}}
@@ -273,8 +273,8 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 		return []spectest.ExpectedEndpoint{{
 			Direction:    "consume",
 			Pattern:      "event-stream",
-			ExchangeName: spec.DefaultEventExchangeName,
-			ExchangeKind: spec.KindTopic,
+			ExchangeName: messaging.DefaultEventExchangeName,
+			ExchangeKind: messaging.KindTopic,
 			RoutingKey:   intent.RoutingKey,
 			Ephemeral:    true,
 		}}
@@ -284,7 +284,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "publish",
 			Pattern:      "custom-stream",
 			ExchangeName: intent.Exchange,
-			ExchangeKind: spec.KindTopic,
+			ExchangeKind: messaging.KindTopic,
 		}}
 
 	case intent.Pattern == "custom-stream" && intent.Direction == "consume" && !intent.Ephemeral:
@@ -296,7 +296,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "custom-stream",
 			ExchangeName: intent.Exchange,
-			ExchangeKind: spec.KindTopic,
+			ExchangeKind: messaging.KindTopic,
 			QueueName:    qName,
 			RoutingKey:   intent.RoutingKey,
 		}}
@@ -306,7 +306,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "custom-stream",
 			ExchangeName: intent.Exchange,
-			ExchangeKind: spec.KindTopic,
+			ExchangeKind: messaging.KindTopic,
 			RoutingKey:   intent.RoutingKey,
 			Ephemeral:    true,
 		}}
@@ -316,7 +316,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "service-request",
 			ExchangeName: runtimeService,
-			ExchangeKind: spec.KindDirect,
+			ExchangeKind: messaging.KindDirect,
 			QueueName:    runtimeService,
 			RoutingKey:   intent.RoutingKey,
 		}}
@@ -327,7 +327,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "publish",
 			Pattern:      "service-request",
 			ExchangeName: runtimeTarget,
-			ExchangeKind: spec.KindDirect,
+			ExchangeKind: messaging.KindDirect,
 		}}
 
 	case intent.Pattern == "service-response" && intent.Direction == "consume":
@@ -336,7 +336,7 @@ func computeNATSEndpoints(runtimeService string, intent spectest.SetupIntent, ma
 			Direction:    "consume",
 			Pattern:      "service-response",
 			ExchangeName: runtimeTarget,
-			ExchangeKind: spec.KindHeaders,
+			ExchangeKind: messaging.KindHeaders,
 			QueueName:    runtimeService,
 			RoutingKey:   intent.RoutingKey,
 		}}
@@ -362,17 +362,17 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 		for _, intent := range svcCfg.Setups {
 			switch {
 			case intent.Pattern == "event-stream" && intent.Direction == "publish":
-				exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+				exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
 
 			case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
-				exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+				exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
-				qName := spec.ServiceEventQueueName(exName, runtimeName)
+				qName := messaging.ServiceEventQueueName(exName, runtimeName)
 				if intent.QueueSuffix != "" {
 					qName += "-" + intent.QueueSuffix
 				}
@@ -385,11 +385,11 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				})
 
 			case intent.Pattern == "event-stream" && intent.Direction == "consume" && intent.Ephemeral:
-				exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
+				exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
-				qPrefix := spec.ServiceEventQueueName(exName, runtimeName) + "-"
+				qPrefix := messaging.ServiceEventQueueName(exName, runtimeName) + "-"
 				queues = append(queues, spectest.AMQPQueue{
 					NamePrefix: qPrefix, Durable: true,
 					Arguments: spectest.QueueArguments{XQueueType: "quorum", XExpires: ephemeralQueueExpiry},
@@ -399,17 +399,17 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				})
 
 			case intent.Pattern == "custom-stream" && intent.Direction == "publish":
-				exName := spec.TopicExchangeName(intent.Exchange)
+				exName := messaging.TopicExchangeName(intent.Exchange)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
 
 			case intent.Pattern == "custom-stream" && intent.Direction == "consume" && !intent.Ephemeral:
-				exName := spec.TopicExchangeName(intent.Exchange)
+				exName := messaging.TopicExchangeName(intent.Exchange)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
-				qName := spec.ServiceEventQueueName(exName, runtimeName)
+				qName := messaging.ServiceEventQueueName(exName, runtimeName)
 				if intent.QueueSuffix != "" {
 					qName += "-" + intent.QueueSuffix
 				}
@@ -422,11 +422,11 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				})
 
 			case intent.Pattern == "custom-stream" && intent.Direction == "consume" && intent.Ephemeral:
-				exName := spec.TopicExchangeName(intent.Exchange)
+				exName := messaging.TopicExchangeName(intent.Exchange)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindTopic, Durable: true,
+					Name: exName, Type: messaging.KindTopic, Durable: true,
 				}
-				qPrefix := spec.ServiceEventQueueName(exName, runtimeName) + "-"
+				qPrefix := messaging.ServiceEventQueueName(exName, runtimeName) + "-"
 				queues = append(queues, spectest.AMQPQueue{
 					NamePrefix: qPrefix, Durable: true,
 					Arguments: spectest.QueueArguments{XQueueType: "quorum", XExpires: ephemeralQueueExpiry},
@@ -436,11 +436,11 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				})
 
 			case intent.Pattern == "service-request" && intent.Direction == "consume":
-				exName := spec.ServiceRequestExchangeName(runtimeName)
+				exName := messaging.ServiceRequestExchangeName(runtimeName)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindDirect, Durable: true,
+					Name: exName, Type: messaging.KindDirect, Durable: true,
 				}
-				qName := spec.ServiceRequestQueueName(runtimeName)
+				qName := messaging.ServiceRequestQueueName(runtimeName)
 				queues = append(queues, spectest.AMQPQueue{
 					Name: qName, Durable: true,
 					Arguments: spectest.QueueArguments{XQueueType: "quorum", XExpires: durableQueueExpiry},
@@ -451,18 +451,18 @@ func computeAMQPBrokerState(services map[string]spectest.ServiceConfig, mapper *
 
 			case intent.Pattern == "service-request" && intent.Direction == "publish":
 				runtimeTarget := mapper.Runtime(intent.TargetService)
-				exName := spec.ServiceRequestExchangeName(runtimeTarget)
+				exName := messaging.ServiceRequestExchangeName(runtimeTarget)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindDirect, Durable: true,
+					Name: exName, Type: messaging.KindDirect, Durable: true,
 				}
 
 			case intent.Pattern == "service-response" && intent.Direction == "consume":
 				runtimeTarget := mapper.Runtime(intent.TargetService)
-				exName := spec.ServiceResponseExchangeName(runtimeTarget)
+				exName := messaging.ServiceResponseExchangeName(runtimeTarget)
 				exchangeMap[exName] = spectest.AMQPExchange{
-					Name: exName, Type: spec.KindHeaders, Durable: true,
+					Name: exName, Type: messaging.KindHeaders, Durable: true,
 				}
-				qName := spec.ServiceResponseQueueName(runtimeTarget, runtimeName)
+				qName := messaging.ServiceResponseQueueName(runtimeTarget, runtimeName)
 				queues = append(queues, spectest.AMQPQueue{
 					Name: qName, Durable: true,
 					Arguments: spectest.QueueArguments{XQueueType: "quorum", XExpires: durableQueueExpiry},
@@ -504,13 +504,13 @@ func computeNATSBrokerState(services map[string]spectest.ServiceConfig, mapper *
 		for _, intent := range svcCfg.Setups {
 			switch {
 			case intent.Pattern == "event-stream" && intent.Direction == "publish":
-				streamName := spec.DefaultEventExchangeName
+				streamName := messaging.DefaultEventExchangeName
 				streamMap[streamName] = spectest.NATSStream{
 					Name: streamName, Subjects: []string{streamName + ".>"}, Storage: "file",
 				}
 
 			case intent.Pattern == "event-stream" && intent.Direction == "consume" && !intent.Ephemeral:
-				streamName := spec.DefaultEventExchangeName
+				streamName := messaging.DefaultEventExchangeName
 				streamMap[streamName] = spectest.NATSStream{
 					Name: streamName, Subjects: []string{streamName + ".>"}, Storage: "file",
 				}
@@ -521,18 +521,18 @@ func computeNATSBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				consumers = append(consumers, spectest.NATSConsumer{
 					Stream:        streamName,
 					Durable:       durableName,
-					FilterSubject: spec.NATSSubject(streamName, spec.TranslateWildcard(intent.RoutingKey)),
+					FilterSubject: messaging.NATSSubject(streamName, messaging.TranslateWildcard(intent.RoutingKey)),
 					AckPolicy:     "explicit",
 				})
 
 			case intent.Pattern == "event-stream" && intent.Direction == "consume" && intent.Ephemeral:
-				streamName := spec.DefaultEventExchangeName
+				streamName := messaging.DefaultEventExchangeName
 				streamMap[streamName] = spectest.NATSStream{
 					Name: streamName, Subjects: []string{streamName + ".>"}, Storage: "file",
 				}
 				consumers = append(consumers, spectest.NATSConsumer{
 					Stream:        streamName,
-					FilterSubject: spec.NATSSubject(streamName, spec.TranslateWildcard(intent.RoutingKey)),
+					FilterSubject: messaging.NATSSubject(streamName, messaging.TranslateWildcard(intent.RoutingKey)),
 					AckPolicy:     "explicit",
 				})
 
@@ -554,7 +554,7 @@ func computeNATSBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				consumers = append(consumers, spectest.NATSConsumer{
 					Stream:        streamName,
 					Durable:       durableName,
-					FilterSubject: spec.NATSSubject(streamName, spec.TranslateWildcard(intent.RoutingKey)),
+					FilterSubject: messaging.NATSSubject(streamName, messaging.TranslateWildcard(intent.RoutingKey)),
 					AckPolicy:     "explicit",
 				})
 
@@ -565,7 +565,7 @@ func computeNATSBrokerState(services map[string]spectest.ServiceConfig, mapper *
 				}
 				consumers = append(consumers, spectest.NATSConsumer{
 					Stream:        streamName,
-					FilterSubject: spec.NATSSubject(streamName, spec.TranslateWildcard(intent.RoutingKey)),
+					FilterSubject: messaging.NATSSubject(streamName, messaging.TranslateWildcard(intent.RoutingKey)),
 					AckPolicy:     "explicit",
 				})
 

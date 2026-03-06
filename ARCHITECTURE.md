@@ -8,7 +8,7 @@ The project is split across five repositories:
 
 | Repository | Contents | Module / Package |
 |------------|----------|------------------|
-| [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go spec + TCK + testdata + specverify + Node spec + docs + demos | `github.com/sparetimecoders/gomessaging/spec`, `@gomessaging/spec` |
+| [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go + TypeScript shared library, TCK, testdata, specverify, docs | `github.com/sparetimecoders/messaging`, `@gomessaging/spec` |
 | [`go-messaging-amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go AMQP transport + TCK adapter | `github.com/sparetimecoders/gomessaging/amqp` |
 | [`go-messaging-nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go NATS transport + TCK adapter | `github.com/sparetimecoders/gomessaging/nats` |
 | [`nodejs-messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | Node AMQP transport + TCK adapter | `@gomessaging/amqp` |
@@ -25,8 +25,7 @@ The project is split across five repositories:
 │   └── cmd/tck-runner/   TCK CLI runner
 ├── specverify/           CLI for topology validation and visualization
 ├── testdata/             Shared JSON test fixtures (canonical specification)
-├── nodejs-spec/          TypeScript implementation of the spec (mirrors Go)
-└── demo/                 Multi-transport demo application (Go + Node.js)
+└── typescript/           TypeScript shared messaging library (mirrors Go)
 ```
 
 ### Dependency Graph

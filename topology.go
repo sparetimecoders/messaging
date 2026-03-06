@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package spec
+package messaging
 
 // Transport identifies the messaging transport implementation.
 type Transport string

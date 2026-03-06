@@ -152,13 +152,13 @@ func cmdValidate(cfg config, args []string, stdin io.Reader, stdout, stderr io.W
 		return 1
 	}
 
-	var topo spec.Topology
+	var topo messaging.Topology
 	if err := json.Unmarshal(data, &topo); err != nil {
 		writeResult(cfg, stdout, result{OK: false, Errors: []string{fmt.Sprintf("parsing %s: %s", name, err)}})
 		return 1
 	}
 
-	if err := spec.Validate(topo); err != nil {
+	if err := messaging.Validate(topo); err != nil {
 		errs := splitErrors(err)
 		writeResult(cfg, stdout, result{OK: false, Errors: errs})
 		return 1
@@ -178,7 +178,7 @@ func cmdCrossValidate(cfg config, args []string, stdin io.Reader, stdout, stderr
 		return 1
 	}
 
-	var topologies []spec.Topology
+	var topologies []messaging.Topology
 	for _, path := range args {
 		var r io.Reader
 		name := path
@@ -201,7 +201,7 @@ func cmdCrossValidate(cfg config, args []string, stdin io.Reader, stdout, stderr
 			return 1
 		}
 
-		var topo spec.Topology
+		var topo messaging.Topology
 		if err := json.Unmarshal(data, &topo); err != nil {
 			writeResult(cfg, stdout, result{OK: false, Errors: []string{fmt.Sprintf("parsing %s: %s", name, err)}})
 			return 1
@@ -209,7 +209,7 @@ func cmdCrossValidate(cfg config, args []string, stdin io.Reader, stdout, stderr
 		topologies = append(topologies, topo)
 	}
 
-	if err := spec.ValidateTopologies(topologies); err != nil {
+	if err := messaging.ValidateTopologies(topologies); err != nil {
 		errs := splitErrors(err)
 		writeResult(cfg, stdout, result{OK: false, Errors: errs})
 		return 1
@@ -257,7 +257,7 @@ func cmdCheckFixtures(cfg config, args []string, stdout, stderr io.Writer) int {
 		}
 
 		// Try parsing as Topology first
-		var topo spec.Topology
+		var topo messaging.Topology
 		if err := json.Unmarshal(data, &topo); err != nil {
 			// Not a topology file — that's OK, just check it's valid JSON
 			var raw json.RawMessage
@@ -272,7 +272,7 @@ func cmdCheckFixtures(cfg config, args []string, stdout, stderr io.Writer) int {
 			continue
 		}
 
-		if err := spec.Validate(topo); err != nil {
+		if err := messaging.Validate(topo); err != nil {
 			allErrors = append(allErrors, fmt.Sprintf("%s: %s", entry.Name(), err))
 		}
 	}
@@ -291,7 +291,7 @@ func cmdCheckFixtures(cfg config, args []string, stdout, stderr io.Writer) int {
 }
 
 func cmdDiscover(cfg config, args []string, stdout, stderr io.Writer) int {
-	topologies, err := spec.DiscoverTopologies(spec.BrokerConfig{
+	topologies, err := messaging.DiscoverTopologies(messaging.BrokerConfig{
 		URL:      cfg.brokerURL,
 		Username: cfg.brokerUser,
 		Password: cfg.brokerPassword,
@@ -305,7 +305,7 @@ func cmdDiscover(cfg config, args []string, stdout, stderr io.Writer) int {
 
 	switch cfg.output {
 	case "mermaid":
-		diagram := spec.Mermaid(topologies)
+		diagram := messaging.Mermaid(topologies)
 		if cfg.format == "json" {
 			type vizResult struct {
 				OK      bool   `json:"ok"`
@@ -360,7 +360,7 @@ func cmdVisualize(cfg config, args []string, stdin io.Reader, stdout, stderr io.
 		return 1
 	}
 
-	var topologies []spec.Topology
+	var topologies []messaging.Topology
 	for _, path := range args {
 		var r io.Reader
 		name := path
@@ -383,7 +383,7 @@ func cmdVisualize(cfg config, args []string, stdin io.Reader, stdout, stderr io.
 			return 1
 		}
 
-		var topo spec.Topology
+		var topo messaging.Topology
 		if err := json.Unmarshal(data, &topo); err != nil {
 			writeResult(cfg, stdout, result{OK: false, Errors: []string{fmt.Sprintf("parsing %s: %s", name, err)}})
 			return 1
@@ -392,14 +392,14 @@ func cmdVisualize(cfg config, args []string, stdin io.Reader, stdout, stderr io.
 	}
 
 	if !cfg.noValidate {
-		if err := spec.ValidateTopologies(topologies); err != nil {
+		if err := messaging.ValidateTopologies(topologies); err != nil {
 			errs := splitErrors(err)
 			writeResult(cfg, stdout, result{OK: false, Errors: errs})
 			return 1
 		}
 	}
 
-	diagram := spec.Mermaid(topologies)
+	diagram := messaging.Mermaid(topologies)
 
 	if cfg.format == "json" {
 		type vizResult struct {

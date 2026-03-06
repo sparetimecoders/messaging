@@ -57,7 +57,7 @@ Load each JSON fixture file and verify your implementation produces identical ou
 | [`cloudevents.json`](../testdata/cloudevents.json) | CE header validation and metadata extraction |
 | [`constants.json`](../testdata/constants.json) | Enum values match |
 
-The `spectest` package (Go) and the test files in `nodejs-spec/__tests__/` show how to load and assert against fixtures.
+The `spectest` package (Go) and the test files in `typescript/__tests__/` show how to load and assert against fixtures.
 
 ## Step 3: Map Patterns to Broker Primitives
 

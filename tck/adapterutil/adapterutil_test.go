@@ -49,14 +49,14 @@ func (m *mockManager) StartService(serviceName string, intents []spectest.SetupI
 	var received []tck.ReceivedMessageWire
 
 	return &ServiceState{
-		Topology: spec.Topology{
-			Transport:   spec.TransportNATS,
+		Topology: messaging.Topology{
+			Transport:   messaging.TransportNATS,
 			ServiceName: serviceName,
-			Endpoints: []spec.Endpoint{{
-				Direction:    spec.DirectionPublish,
-				Pattern:      spec.PatternEventStream,
+			Endpoints: []messaging.Endpoint{{
+				Direction:    messaging.DirectionPublish,
+				Pattern:      messaging.PatternEventStream,
 				ExchangeName: "events",
-				ExchangeKind: spec.ExchangeTopic,
+				ExchangeKind: messaging.ExchangeTopic,
 			}},
 		},
 		PublisherKeys: pubKeys,
@@ -64,7 +64,7 @@ func (m *mockManager) StartService(serviceName string, intents []spectest.SetupI
 			received = append(received, tck.ReceivedMessageWire{
 				RoutingKey: routingKey,
 				Payload:    payload,
-				Metadata:   spec.Metadata{Type: routingKey, Source: serviceName},
+				Metadata:   messaging.Metadata{Type: routingKey, Source: serviceName},
 			})
 			return nil
 		},
@@ -237,7 +237,7 @@ type closingManager struct {
 
 func (m *closingManager) StartService(serviceName string, intents []spectest.SetupIntent) (*ServiceState, error) {
 	return &ServiceState{
-		Topology:      spec.Topology{ServiceName: serviceName},
+		Topology:      messaging.Topology{ServiceName: serviceName},
 		PublisherKeys: nil,
 		Publish:       func(_, _ string, _ json.RawMessage, _ map[string]string) error { return nil },
 		Received:      func() []tck.ReceivedMessageWire { return nil },

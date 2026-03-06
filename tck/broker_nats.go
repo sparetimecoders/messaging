@@ -111,8 +111,8 @@ func (c *natsBrokerClient) PublishRaw(t spectest.T, target spectest.ProbeTarget,
 	for attr, val := range headers {
 		natsHeaders.Set("ce-"+attr, val)
 	}
-	natsHeaders.Set(spec.CEID, uuid.New().String())
-	natsHeaders.Set(spec.CETime, time.Now().UTC().Format(time.RFC3339))
+	natsHeaders.Set(messaging.CEID, uuid.New().String())
+	natsHeaders.Set(messaging.CETime, time.Now().UTC().Format(time.RFC3339))
 
 	msg := &natsgo.Msg{
 		Subject: target.Subject,

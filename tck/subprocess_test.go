@@ -41,7 +41,7 @@ type mockProtocol struct {
 }
 
 type mockService struct {
-	topology   spec.Topology
+	topology   messaging.Topology
 	publishers []string
 	received   []ReceivedMessageWire
 }
@@ -72,14 +72,14 @@ func (m *mockProtocol) handle(reqLine string) string {
 				pubKeys = append(pubKeys, spectest.PublisherKey(intent))
 			}
 		}
-		topo := spec.Topology{
-			Transport:   spec.TransportNATS,
+		topo := messaging.Topology{
+			Transport:   messaging.TransportNATS,
 			ServiceName: params.ServiceName,
-			Endpoints: []spec.Endpoint{{
-				Direction:    spec.DirectionPublish,
-				Pattern:      spec.PatternEventStream,
+			Endpoints: []messaging.Endpoint{{
+				Direction:    messaging.DirectionPublish,
+				Pattern:      messaging.PatternEventStream,
 				ExchangeName: "events",
-				ExchangeKind: spec.ExchangeTopic,
+				ExchangeKind: messaging.ExchangeTopic,
 			}},
 		}
 		m.services[params.ServiceName] = &mockService{
@@ -100,7 +100,7 @@ func (m *mockProtocol) handle(reqLine string) string {
 		svc.received = append(svc.received, ReceivedMessageWire{
 			RoutingKey: params.RoutingKey,
 			Payload:    params.Payload,
-			Metadata:   spec.Metadata{Type: params.RoutingKey, Source: params.ServiceName},
+			Metadata:   messaging.Metadata{Type: params.RoutingKey, Source: params.ServiceName},
 		})
 		return resultResponse(req.ID, struct{}{})
 	case "received":
@@ -221,12 +221,12 @@ func TestReceivedMessageWireSerialization(t *testing.T) {
 	msg := ReceivedMessageWire{
 		RoutingKey: "Order.Created",
 		Payload:    json.RawMessage(`{"orderId":"123"}`),
-		Metadata: spec.Metadata{
+		Metadata: messaging.Metadata{
 			Type:        "Order.Created",
 			Source:      "orders",
 			SpecVersion: "1.0",
 		},
-		DeliveryInfo: spec.DeliveryInfo{
+		DeliveryInfo: messaging.DeliveryInfo{
 			Destination: "queue-1",
 			Source:      "exchange-1",
 			Key:         "Order.Created",

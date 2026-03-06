@@ -109,10 +109,10 @@ func (c *amqpBrokerClient) PublishRaw(t spectest.T, target spectest.ProbeTarget,
 
 	amqpHeaders := amqplib.Table{}
 	for attr, val := range headers {
-		amqpHeaders[spec.AMQPCEHeaderKey(attr)] = val
+		amqpHeaders[messaging.AMQPCEHeaderKey(attr)] = val
 	}
-	amqpHeaders[spec.AMQPCEHeaderKey(spec.CEAttrID)] = uuid.New().String()
-	amqpHeaders[spec.AMQPCEHeaderKey(spec.CEAttrTime)] = time.Now().UTC().Format(time.RFC3339)
+	amqpHeaders[messaging.AMQPCEHeaderKey(messaging.CEAttrID)] = uuid.New().String()
+	amqpHeaders[messaging.AMQPCEHeaderKey(messaging.CEAttrTime)] = time.Now().UTC().Format(time.RFC3339)
 
 	return ch.PublishWithContext(context.Background(), target.Exchange, target.RoutingKey, false, false, amqplib.Publishing{
 		Body:         payload,
@@ -144,7 +144,7 @@ func (c *amqpBrokerClient) CreateProbeConsumer(t spectest.T, target spectest.Pro
 			select {
 			case d := <-deliveries:
 				hdrs := make(map[string]string)
-				normalized := spec.NormalizeCEHeaders(amqpTableToHeaders(d.Headers))
+				normalized := messaging.NormalizeCEHeaders(amqpTableToHeaders(d.Headers))
 				for k, v := range normalized {
 					if strings.HasPrefix(k, "ce-") {
 						if s, ok := v.(string); ok {
@@ -186,8 +186,8 @@ func (c *amqpBrokerClient) Cleanup(t spectest.T) {
 	}
 }
 
-func amqpTableToHeaders(table amqplib.Table) spec.Headers {
-	headers := make(spec.Headers, len(table))
+func amqpTableToHeaders(table amqplib.Table) messaging.Headers {
+	headers := make(messaging.Headers, len(table))
 	for k, v := range table {
 		headers[k] = v
 	}

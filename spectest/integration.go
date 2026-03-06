@@ -97,8 +97,8 @@ type MetadataAssertions struct {
 type ReceivedMessage struct {
 	RoutingKey string
 	Payload    json.RawMessage
-	Metadata   spec.Metadata
-	Info       spec.DeliveryInfo
+	Metadata   messaging.Metadata
+	Info       messaging.DeliveryInfo
 }
 
 // PublishFunc publishes a message with the given routing key, payload, and optional headers.
@@ -107,7 +107,7 @@ type PublishFunc func(ctx context.Context, routingKey string, payload json.RawMe
 // ServiceHandle provides access to a running service's topology, publishers,
 // and received messages.
 type ServiceHandle struct {
-	Topology   func() spec.Topology
+	Topology   func() messaging.Topology
 	Publishers map[string]PublishFunc
 	Received   func() []ReceivedMessage
 	Close      func() error

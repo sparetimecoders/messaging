@@ -79,7 +79,7 @@ type StartServiceParams struct {
 // StartServiceResult is the response after starting a service.
 type StartServiceResult struct {
 	PublisherKeys []string      `json:"publisherKeys"`
-	Topology      spec.Topology `json:"topology"`
+	Topology      messaging.Topology `json:"topology"`
 }
 
 // --- publish ---
@@ -109,8 +109,8 @@ type ReceivedResult struct {
 type ReceivedMessageWire struct {
 	RoutingKey   string          `json:"routingKey"`
 	Payload      json.RawMessage `json:"payload"`
-	Metadata     spec.Metadata   `json:"metadata"`
-	DeliveryInfo spec.DeliveryInfo `json:"deliveryInfo"`
+	Metadata     messaging.Metadata   `json:"metadata"`
+	DeliveryInfo messaging.DeliveryInfo `json:"deliveryInfo"`
 }
 
 // --- close_service ---

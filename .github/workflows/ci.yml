@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install and test
-        working-directory: nodejs-spec
+        working-directory: typescript
         run: |
           npm install
           npm test

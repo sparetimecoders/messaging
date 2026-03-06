@@ -94,19 +94,19 @@ func TestComputeExpectedEndpointsAMQPServiceRequest(t *testing.T) {
 	emailEP := endpoints["email-svc"]
 	require.Len(t, emailEP, 1)
 	runtimeEmail := mapper.Runtime("email-svc")
-	assert.Equal(t, spec.ServiceRequestExchangeName(runtimeEmail), emailEP[0].ExchangeName)
-	assert.Equal(t, spec.ServiceRequestQueueName(runtimeEmail), emailEP[0].QueueName)
+	assert.Equal(t, messaging.ServiceRequestExchangeName(runtimeEmail), emailEP[0].ExchangeName)
+	assert.Equal(t, messaging.ServiceRequestQueueName(runtimeEmail), emailEP[0].QueueName)
 
 	webEP := endpoints["web-app"]
 	require.Len(t, webEP, 2)
 	// Publish endpoint uses the target's request exchange.
 	assert.Equal(t, "publish", webEP[0].Direction)
-	assert.Equal(t, spec.ServiceRequestExchangeName(runtimeEmail), webEP[0].ExchangeName)
+	assert.Equal(t, messaging.ServiceRequestExchangeName(runtimeEmail), webEP[0].ExchangeName)
 	// Response consume endpoint uses the target's response exchange.
 	runtimeWeb := mapper.Runtime("web-app")
 	assert.Equal(t, "consume", webEP[1].Direction)
-	assert.Equal(t, spec.ServiceResponseExchangeName(runtimeEmail), webEP[1].ExchangeName)
-	assert.Equal(t, spec.ServiceResponseQueueName(runtimeEmail, runtimeWeb), webEP[1].QueueName)
+	assert.Equal(t, messaging.ServiceResponseExchangeName(runtimeEmail), webEP[1].ExchangeName)
+	assert.Equal(t, messaging.ServiceResponseQueueName(runtimeEmail, runtimeWeb), webEP[1].QueueName)
 }
 
 func TestComputeExpectedEndpointsEphemeral(t *testing.T) {
@@ -123,7 +123,7 @@ func TestComputeExpectedEndpointsEphemeral(t *testing.T) {
 	require.Len(t, dashEP, 1)
 	assert.True(t, dashEP[0].Ephemeral)
 	runtimeDash := mapper.Runtime("dashboard")
-	assert.Equal(t, spec.ServiceEventQueueName("events.topic.exchange", runtimeDash)+"-", dashEP[0].QueueNamePrefix)
+	assert.Equal(t, messaging.ServiceEventQueueName("events.topic.exchange", runtimeDash)+"-", dashEP[0].QueueNamePrefix)
 	assert.Empty(t, dashEP[0].QueueName)
 
 	// NATS: ephemeral consumer has no QueueName.
@@ -215,7 +215,7 @@ func TestComputeExpectedBrokerStateServiceRequest(t *testing.T) {
 	require.Len(t, amqpBroker.AMQP.Bindings, 2)
 
 	// Verify request exchange exists.
-	reqExName := spec.ServiceRequestExchangeName(runtimeEmail)
+	reqExName := messaging.ServiceRequestExchangeName(runtimeEmail)
 	var foundReqExchange bool
 	for _, ex := range amqpBroker.AMQP.Exchanges {
 		if ex.Name == reqExName {
@@ -226,7 +226,7 @@ func TestComputeExpectedBrokerStateServiceRequest(t *testing.T) {
 	assert.True(t, foundReqExchange, "request exchange not found")
 
 	// Verify response exchange exists.
-	respExName := spec.ServiceResponseExchangeName(runtimeEmail)
+	respExName := messaging.ServiceResponseExchangeName(runtimeEmail)
 	var foundRespExchange bool
 	for _, ex := range amqpBroker.AMQP.Exchanges {
 		if ex.Name == respExName {
@@ -237,7 +237,7 @@ func TestComputeExpectedBrokerStateServiceRequest(t *testing.T) {
 	assert.True(t, foundRespExchange, "response exchange not found")
 
 	// Verify response queue.
-	respQName := spec.ServiceResponseQueueName(runtimeEmail, runtimeWeb)
+	respQName := messaging.ServiceResponseQueueName(runtimeEmail, runtimeWeb)
 	var foundRespQueue bool
 	for _, q := range amqpBroker.AMQP.Queues {
 		if q.Name == respQName {
@@ -264,8 +264,8 @@ func TestComputeExpectedEndpointsAMQPSuffix(t *testing.T) {
 	require.Len(t, backendEP, 2)
 
 	runtimeBackend := mapper.Runtime("backend")
-	exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
-	baseQueue := spec.ServiceEventQueueName(exName, runtimeBackend)
+	exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
+	baseQueue := messaging.ServiceEventQueueName(exName, runtimeBackend)
 
 	assert.Equal(t, baseQueue+"-reminders", backendEP[0].QueueName)
 	assert.Equal(t, baseQueue+"-reporting", backendEP[1].QueueName)
@@ -341,8 +341,8 @@ func TestComputeExpectedBrokerStateAMQPSuffix(t *testing.T) {
 	broker := ComputeExpectedBrokerState("amqp", services, mapper)
 
 	runtimeBackend := mapper.Runtime("backend")
-	exName := spec.TopicExchangeName(spec.DefaultEventExchangeName)
-	baseQueue := spec.ServiceEventQueueName(exName, runtimeBackend)
+	exName := messaging.TopicExchangeName(messaging.DefaultEventExchangeName)
+	baseQueue := messaging.ServiceEventQueueName(exName, runtimeBackend)
 
 	require.Len(t, broker.AMQP.Queues, 2)
 	queueNames := []string{broker.AMQP.Queues[0].Name, broker.AMQP.Queues[1].Name}
