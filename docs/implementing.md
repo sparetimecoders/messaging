@@ -1,11 +1,11 @@
 # Implementing a Transport
 
-This guide walks through building a conformant gomessaging transport from scratch — in any language, for any message broker.
+This guide walks through building a conformant messaging transport from scratch — in any language, for any message broker.
 
 ## What You're Building
 
 A transport library that:
-1. Exposes the gomessaging API (publishers, consumers, connection lifecycle)
+1. Exposes the messaging API (publishers, consumers, connection lifecycle)
 2. Maps the five messaging patterns to broker primitives
 3. Uses deterministic naming for all broker resources
 4. Attaches CloudEvents metadata to every message

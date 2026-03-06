@@ -1,4 +1,4 @@
-# gomessaging
+# messaging
 
 <p align="center">
   <strong>Opinionated multi-transport messaging with shared specification, conformance testing, and topology visualization.</strong>
@@ -14,7 +14,7 @@
 
 ---
 
-gomessaging defines a **shared specification** for event-driven microservices that works across message brokers (AMQP/RabbitMQ, NATS/JetStream) and languages (Go, Node.js/TypeScript). Services that follow the spec get:
+messaging defines a **shared specification** for event-driven microservices that works across message brokers (AMQP/RabbitMQ, NATS/JetStream) and languages (Go, Node.js/TypeScript). Services that follow the spec get:
 
 - **Deterministic naming** &mdash; exchange, queue, and stream names derive from service name + pattern
 - **Topology validation** &mdash; catch wiring errors before deployment
@@ -30,8 +30,8 @@ gomessaging defines a **shared specification** for event-driven microservices th
 |---------|----------|-------------|
 | [`messaging`](https://github.com/sparetimecoders/messaging) | Go | Specification, TCK runner, validation, visualization |
 | [`@gomessaging/spec`](https://github.com/sparetimecoders/messaging/tree/main/typescript) | TypeScript | Shared messaging library (mirrors Go) |
-| [`gomessaging/amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go | AMQP/RabbitMQ transport |
-| [`gomessaging/nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go | NATS/JetStream transport |
+| [`messaging/amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go | AMQP/RabbitMQ transport |
+| [`messaging/nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go | NATS/JetStream transport |
 | [`@gomessaging/amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | TypeScript | AMQP/RabbitMQ transport |
 | [`@gomessaging/nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | TypeScript | NATS/JetStream transport |
 
@@ -99,7 +99,7 @@ conn.Start(ctx,
 
 ## Communication Patterns
 
-gomessaging supports five messaging patterns. All names are derived deterministically from the service name and pattern, so services discover each other without configuration.
+messaging supports five messaging patterns. All names are derived deterministically from the service name and pattern, so services discover each other without configuration.
 
 ### Event Stream (pub/sub)
 

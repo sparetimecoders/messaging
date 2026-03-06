@@ -1,6 +1,6 @@
 # Naming Conventions
 
-All resource names in gomessaging are derived deterministically from the service name and messaging pattern. This enables services to discover each other without configuration, and makes topologies fully reconstructable from declarations alone.
+All resource names in messaging are derived deterministically from the service name and messaging pattern. This enables services to discover each other without configuration, and makes topologies fully reconstructable from declarations alone.
 
 ## Design Principle
 

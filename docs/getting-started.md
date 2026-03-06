@@ -1,6 +1,6 @@
 # Getting Started
 
-gomessaging provides a unified API for event-driven microservices across AMQP/RabbitMQ and NATS/JetStream. The API is nearly identical across transports and languages, so switching brokers requires minimal code changes.
+messaging provides a unified API for event-driven microservices across AMQP/RabbitMQ and NATS/JetStream. The API is nearly identical across transports and languages, so switching brokers requires minimal code changes.
 
 ## Installation
 
@@ -139,7 +139,7 @@ await pub.publish("Order.Created", { orderId: "abc-123", amount: 42 });
 
 ## What Happens Under the Hood
 
-When you call `Start()`, gomessaging:
+When you call `Start()`, messaging:
 
 1. **Declares topology** — creates exchanges, queues, streams, and bindings using [deterministic naming](naming.md)
 2. **Sets up consumers** — binds handler functions to queues/subjects with the specified routing keys

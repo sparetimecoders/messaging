@@ -1,6 +1,6 @@
 # Communication Patterns
 
-gomessaging supports five messaging patterns. Each pattern maps to specific broker primitives (exchanges and queues in AMQP, streams and subjects in NATS) using [deterministic naming](naming.md).
+messaging supports five messaging patterns. Each pattern maps to specific broker primitives (exchanges and queues in AMQP, streams and subjects in NATS) using [deterministic naming](naming.md).
 
 ## Overview
 

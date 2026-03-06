@@ -1,6 +1,6 @@
-# gomessaging Specification Fixtures
+# messaging Specification Fixtures
 
-Language-agnostic test fixtures for validating implementations of the gomessaging specification. Any transport implementation (Go, Node.js, Python, etc.) can load these JSON files and run conformance tests.
+Language-agnostic test fixtures for validating implementations of the messaging specification. Any transport implementation (Go, Node.js, Python, etc.) can load these JSON files and run conformance tests.
 
 ## Conformance Levels
 

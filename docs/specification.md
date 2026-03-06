@@ -1,6 +1,6 @@
 # Specification Reference
 
-This document is the formal specification for gomessaging. Transport implementations must conform to these rules to pass the [TCK](tck.md).
+This document is the formal specification for messaging. Transport implementations must conform to these rules to pass the [TCK](tck.md).
 
 ## Core Types
 

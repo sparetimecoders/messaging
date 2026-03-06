@@ -1,6 +1,6 @@
-# gomessaging Documentation
+# messaging Documentation
 
-Welcome to the gomessaging specification documentation. This guide covers everything from getting started to implementing your own transport.
+Welcome to the messaging specification documentation. This guide covers everything from getting started to implementing your own transport.
 
 ## For Users
 

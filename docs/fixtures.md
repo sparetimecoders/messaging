@@ -1,6 +1,6 @@
 # Test Fixtures
 
-The `testdata/` directory contains JSON fixtures that define expected behavior for all gomessaging implementations. These fixtures are the **canonical specification** — if the code and fixtures disagree, the fixtures are authoritative.
+The `testdata/` directory contains JSON fixtures that define expected behavior for all messaging implementations. These fixtures are the **canonical specification** — if the code and fixtures disagree, the fixtures are authoritative.
 
 ## Fixture Files
 

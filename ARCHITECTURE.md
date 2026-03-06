@@ -1,6 +1,6 @@
-# gomessaging Architecture
+# messaging Architecture
 
-gomessaging is a multi-transport messaging library with a shared specification layer. It provides consistent naming conventions, topology validation, CloudEvents support, and observability across different message brokers.
+messaging is a multi-transport messaging library with a shared specification layer. It provides consistent naming conventions, topology validation, CloudEvents support, and observability across different message brokers.
 
 ## Repository Structure
 
@@ -42,7 +42,7 @@ The `messaging` module has zero transport dependencies. Transport modules import
 
 ## Communication Patterns
 
-gomessaging supports five messaging patterns:
+messaging supports five messaging patterns:
 
 | Pattern | Exchange Kind | Use Case |
 |---------|--------------|----------|

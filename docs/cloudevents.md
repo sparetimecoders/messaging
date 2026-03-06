@@ -1,10 +1,10 @@
 # CloudEvents
 
-All messages in gomessaging carry [CloudEvents 1.0](https://cloudevents.io/) metadata. This provides a standardized envelope for event attributes — who sent it, what type it is, when it happened — independent of the transport.
+All messages in messaging carry [CloudEvents 1.0](https://cloudevents.io/) metadata. This provides a standardized envelope for event attributes — who sent it, what type it is, when it happened — independent of the transport.
 
 ## Wire Format
 
-gomessaging uses **binary content mode**: CloudEvents attributes are transported as message headers, and the event data is the message body (JSON-encoded).
+messaging uses **binary content mode**: CloudEvents attributes are transported as message headers, and the event data is the message body (JSON-encoded).
 
 ```
 Headers:
@@ -44,7 +44,7 @@ These headers are set automatically on every published message:
 
 ## AMQP Header Prefix
 
-The [CloudEvents AMQP binding](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/amqp-protocol-binding.md) specifies using the `cloudEvents:` prefix for application properties. gomessaging follows this convention:
+The [CloudEvents AMQP binding](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/amqp-protocol-binding.md) specifies using the `cloudEvents:` prefix for application properties. messaging follows this convention:
 
 | Context | Header format |
 |---------|---------------|

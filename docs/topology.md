@@ -1,6 +1,6 @@
 # Topology Tools
 
-gomessaging provides static analysis and visualization tools for messaging topologies. Catch wiring errors before deployment, generate architecture diagrams, and reconstruct topologies from a live broker.
+messaging provides static analysis and visualization tools for messaging topologies. Catch wiring errors before deployment, generate architecture diagrams, and reconstruct topologies from a live broker.
 
 ## Topology Model
 

@@ -1,6 +1,6 @@
 # @gomessaging/spec
 
-TypeScript implementation of the [gomessaging specification](https://github.com/sparetimecoders/messaging). This package mirrors the Go messaging library, providing identical naming functions, validation, CloudEvents handling, routing, and visualization for Node.js/TypeScript transport implementations.
+TypeScript implementation of the [messaging specification](https://github.com/sparetimecoders/messaging). This package mirrors the Go messaging library, providing identical naming functions, validation, CloudEvents handling, routing, and visualization for Node.js/TypeScript transport implementations.
 
 ## Installation
 
