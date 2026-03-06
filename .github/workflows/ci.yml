@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
 
+permissions: {}
+
 jobs:
   go-spec:
     name: Go Spec Tests
@@ -15,8 +17,17 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: "1.26"
-      - run: go test ./...
+          go-version-file: go.mod
+      - name: Tests
+        run: |
+          go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg="$(go list ./... | tr '\n' , | sed 's/,$//')" ./...
+          go tool cover -func=coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          files: ./coverage.txt
+          flags: go
+          token: ${{ secrets.CODECOV_TOKEN }}
       - run: go vet ./...
       - name: Test TCK
         run: |
@@ -43,4 +54,10 @@ jobs:
         working-directory: typescript
         run: |
           npm install
-          npm test
+          npm run test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          files: ./typescript/coverage/coverage-final.json
+          flags: typescript
+          token: ${{ secrets.CODECOV_TOKEN }}
