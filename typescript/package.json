@@ -1,6 +1,13 @@
 {
   "name": "@sparetimecoders/messaging",
   "version": "0.0.0",
+  "description": "Messaging specification and shared types for sparetimecoders messaging libraries",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sparetimecoders/messaging.git",
+    "directory": "typescript"
+  },
   "type": "module",
   "exports": {
     ".": {
