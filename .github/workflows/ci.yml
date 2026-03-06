@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version-file: go.mod
+          go-version-file: go.work
       - name: Tests
         run: |
           go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg="$(go list ./... | tr '\n' , | sed 's/,$//')" ./...
