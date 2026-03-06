@@ -44,14 +44,14 @@ type namingFixtures struct {
 }
 
 type topicExchangeNameCase struct {
-	Input    struct {
+	Input struct {
 		Name string `json:"name"`
 	} `json:"input"`
 	Expected string `json:"expected"`
 }
 
 type serviceEventQueueNameCase struct {
-	Input    struct {
+	Input struct {
 		ExchangeName string `json:"exchangeName"`
 		Service      string `json:"service"`
 	} `json:"input"`
@@ -59,14 +59,14 @@ type serviceEventQueueNameCase struct {
 }
 
 type serviceExchangeNameCase struct {
-	Input    struct {
+	Input struct {
 		Service string `json:"service"`
 	} `json:"input"`
 	Expected string `json:"expected"`
 }
 
 type serviceResponseQueueNameCase struct {
-	Input    struct {
+	Input struct {
 		TargetService string `json:"targetService"`
 		ServiceName   string `json:"serviceName"`
 	} `json:"input"`
@@ -74,14 +74,14 @@ type serviceResponseQueueNameCase struct {
 }
 
 type natsStreamNameCase struct {
-	Input    struct {
+	Input struct {
 		Name string `json:"name"`
 	} `json:"input"`
 	Expected string `json:"expected"`
 }
 
 type natsSubjectCase struct {
-	Input    struct {
+	Input struct {
 		Stream     string `json:"stream"`
 		RoutingKey string `json:"routingKey"`
 	} `json:"input"`
@@ -89,7 +89,7 @@ type natsSubjectCase struct {
 }
 
 type translateWildcardCase struct {
-	Input    struct {
+	Input struct {
 		RoutingKey string `json:"routingKey"`
 	} `json:"input"`
 	Expected string `json:"expected"`
@@ -171,7 +171,7 @@ func writeAndVerifyFixture(t *testing.T, path string, fixture any) {
 	}
 
 	if string(existing) != string(generated) {
-		if err := os.WriteFile(path, generated, 0644); err != nil {
+		if err := os.WriteFile(path, generated, 0o644); err != nil {
 			t.Fatalf("failed to write fixture %s: %v", path, err)
 		}
 		t.Errorf("fixture %s was out of date and has been regenerated; re-run tests to verify", path)
@@ -189,23 +189,33 @@ func generateNamingFixtures() namingFixtures {
 	return namingFixtures{
 		TopicExchangeName: []topicExchangeNameCase{
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: DefaultEventExchangeName},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: DefaultEventExchangeName},
 				Expected: TopicExchangeName(DefaultEventExchangeName),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "orders"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "orders"},
 				Expected: TopicExchangeName("orders"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "audit-log"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "audit-log"},
 				Expected: TopicExchangeName("audit-log"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "x"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "x"},
 				Expected: TopicExchangeName("x"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "service-v2"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "service-v2"},
 				Expected: TopicExchangeName("service-v2"),
 			},
 		},
@@ -234,43 +244,61 @@ func generateNamingFixtures() namingFixtures {
 		},
 		ServiceRequestExchangeName: []serviceExchangeNameCase{
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "svc"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "svc"},
 				Expected: ServiceRequestExchangeName("svc"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "email-service"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "email-service"},
 				Expected: ServiceRequestExchangeName("email-service"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "payment-gateway-v3"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "payment-gateway-v3"},
 				Expected: ServiceRequestExchangeName("payment-gateway-v3"),
 			},
 		},
 		ServiceResponseExchangeName: []serviceExchangeNameCase{
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "svc"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "svc"},
 				Expected: ServiceResponseExchangeName("svc"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "email-service"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "email-service"},
 				Expected: ServiceResponseExchangeName("email-service"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "payment-gateway-v3"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "payment-gateway-v3"},
 				Expected: ServiceResponseExchangeName("payment-gateway-v3"),
 			},
 		},
 		ServiceRequestQueueName: []serviceExchangeNameCase{
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "svc"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "svc"},
 				Expected: ServiceRequestQueueName("svc"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "email-service"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "email-service"},
 				Expected: ServiceRequestQueueName("email-service"),
 			},
 			{
-				Input:    struct{ Service string `json:"service"` }{Service: "payment-gateway-v3"},
+				Input: struct {
+					Service string `json:"service"`
+				}{Service: "payment-gateway-v3"},
 				Expected: ServiceRequestQueueName("payment-gateway-v3"),
 			},
 		},
@@ -299,27 +327,39 @@ func generateNamingFixtures() namingFixtures {
 		},
 		NATSStreamName: []natsStreamNameCase{
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "events"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "events"},
 				Expected: NATSStreamName("events"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "events.topic.exchange"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "events.topic.exchange"},
 				Expected: NATSStreamName("events.topic.exchange"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "audit"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "audit"},
 				Expected: NATSStreamName("audit"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "audit.topic.exchange"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "audit.topic.exchange"},
 				Expected: NATSStreamName("audit.topic.exchange"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "my-service"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "my-service"},
 				Expected: NATSStreamName("my-service"),
 			},
 			{
-				Input:    struct{ Name string `json:"name"` }{Name: "events.other.suffix"},
+				Input: struct {
+					Name string `json:"name"`
+				}{Name: "events.other.suffix"},
 				Expected: NATSStreamName("events.other.suffix"),
 			},
 		},
@@ -348,27 +388,39 @@ func generateNamingFixtures() namingFixtures {
 		},
 		TranslateWildcard: []translateWildcardCase{
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "Order.#"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "Order.#"},
 				Expected: TranslateWildcard("Order.#"),
 			},
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "Order.*"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "Order.*"},
 				Expected: TranslateWildcard("Order.*"),
 			},
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "Order.Created"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "Order.Created"},
 				Expected: TranslateWildcard("Order.Created"),
 			},
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "#"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "#"},
 				Expected: TranslateWildcard("#"),
 			},
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "*.Created"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "*.Created"},
 				Expected: TranslateWildcard("*.Created"),
 			},
 			{
-				Input:    struct{ RoutingKey string `json:"routingKey"` }{RoutingKey: "Order.*.Detail.#"},
+				Input: struct {
+					RoutingKey string `json:"routingKey"`
+				}{RoutingKey: "Order.*.Detail.#"},
 				Expected: TranslateWildcard("Order.*.Detail.#"),
 			},
 		},
@@ -1015,20 +1067,21 @@ type topologyFixtures struct {
 }
 
 type setupIntent struct {
-	Pattern       string `json:"pattern"`
-	Direction     string `json:"direction"`
-	RoutingKey    string `json:"routingKey,omitempty"`
-	Exchange      string `json:"exchange,omitempty"`
-	TargetService string `json:"targetService,omitempty"`
-	Ephemeral     bool   `json:"ephemeral,omitempty"`
+	Pattern          string `json:"pattern"`
+	Direction        string `json:"direction"`
+	RoutingKey       string `json:"routingKey,omitempty"`
+	Exchange         string `json:"exchange,omitempty"`
+	TargetService    string `json:"targetService,omitempty"`
+	DestinationQueue string `json:"destinationQueue,omitempty"`
+	Ephemeral        bool   `json:"ephemeral,omitempty"`
 }
 
 type topologyScenario struct {
-	Name              string                          `json:"name"`
-	ServiceName       string                          `json:"serviceName"`
-	Setups            []setupIntent                   `json:"setups"`
-	ExpectedEndpoints map[string][]expectedEndpoint   `json:"expectedEndpoints"`
-	Broker            brokerState                     `json:"broker"`
+	Name              string                        `json:"name"`
+	ServiceName       string                        `json:"serviceName"`
+	Setups            []setupIntent                 `json:"setups"`
+	ExpectedEndpoints map[string][]expectedEndpoint `json:"expectedEndpoints"`
+	Broker            brokerState                   `json:"broker"`
 }
 
 type expectedEndpoint struct {
@@ -1093,10 +1146,10 @@ type queueArguments struct {
 }
 
 type amqpBinding struct {
-	Source              string `json:"source"`
-	Destination         string `json:"destination,omitempty"`
-	DestinationPrefix   string `json:"destinationPrefix,omitempty"`
-	RoutingKey          string `json:"routingKey"`
+	Source            string `json:"source"`
+	Destination       string `json:"destination,omitempty"`
+	DestinationPrefix string `json:"destinationPrefix,omitempty"`
+	RoutingKey        string `json:"routingKey"`
 }
 
 // AMQP broker constants
@@ -1197,7 +1250,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      eventsExchange,
 								Destination: ServiceEventQueueName(eventsExchange, "orders"),
-								RoutingKey: "Order.Created",
+								RoutingKey:  "Order.Created",
 							},
 						},
 					},
@@ -1329,7 +1382,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      TopicExchangeName("audit"),
 								Destination: ServiceEventQueueName(TopicExchangeName("audit"), "analytics"),
-								RoutingKey: "Audit.Entry",
+								RoutingKey:  "Audit.Entry",
 							},
 						},
 					},
@@ -1389,7 +1442,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      ServiceRequestExchangeName("email-svc"),
 								Destination: ServiceRequestQueueName("email-svc"),
-								RoutingKey: "email.send",
+								RoutingKey:  "email.send",
 							},
 						},
 					},
@@ -1458,7 +1511,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      ServiceResponseExchangeName("email-svc"),
 								Destination: ServiceResponseQueueName("email-svc", "web-app"),
-								RoutingKey: "email.send",
+								RoutingKey:  "email.send",
 							},
 						},
 					},
@@ -1542,7 +1595,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      eventsExchange,
 								Destination: ServiceEventQueueName(eventsExchange, "client1"),
-								RoutingKey: "Order.Updated",
+								RoutingKey:  "Order.Updated",
 							},
 						},
 					},
@@ -1554,6 +1607,42 @@ func generateTopologyFixtures() topologyFixtures {
 							{Stream: natsEvents, FilterSubject: NATSSubject(natsEvents, "Order.Created"), AckPolicy: "explicit"},
 							{Stream: natsEvents, Durable: "client1", FilterSubject: NATSSubject(natsEvents, "Order.Updated"), AckPolicy: "explicit"},
 						},
+					},
+				},
+			},
+			{
+				Name:        "queue publish",
+				ServiceName: "task-sender",
+				Setups: []setupIntent{
+					{Pattern: "queue-publish", Direction: "publish", DestinationQueue: "task-queue"},
+				},
+				ExpectedEndpoints: map[string][]expectedEndpoint{
+					"amqp": {
+						{
+							Direction:    "publish",
+							Pattern:      "queue-publish",
+							ExchangeName: "(default)",
+							QueueName:    "task-queue",
+						},
+					},
+					"nats": {
+						{
+							Direction:    "publish",
+							Pattern:      "queue-publish",
+							ExchangeName: "task-queue",
+							QueueName:    "task-queue",
+						},
+					},
+				},
+				Broker: brokerState{
+					AMQP: amqpBrokerState{
+						Exchanges: []amqpExchange{},
+						Queues:    []amqpQueue{},
+						Bindings:  []amqpBinding{},
+					},
+					NATS: natsBrokerState{
+						Streams:   []natsStream{},
+						Consumers: []natsConsumer{},
 					},
 				},
 			},
@@ -1602,7 +1691,7 @@ func generateTopologyFixtures() topologyFixtures {
 							{
 								Source:      eventsExchange,
 								Destination: ServiceEventQueueName(eventsExchange, "notifications"),
-								RoutingKey: "Order.Created",
+								RoutingKey:  "Order.Created",
 							},
 						},
 					},
@@ -1653,15 +1742,15 @@ type expectedMetadata struct {
 }
 
 type messageFormatSpec struct {
-	ContentMode    string              `json:"contentMode"`
-	Description    string              `json:"description"`
-	HeaderPrefix   string              `json:"headerPrefix"`
-	Idempotency    string              `json:"idempotency"`
-	DeduplicationKey string            `json:"deduplicationKey"`
-	Required       []headerRequirement `json:"required"`
-	Optional       []headerRequirement `json:"optional"`
-	Extensions     []headerRequirement `json:"extensions"`
-	BodyEncoding   string              `json:"bodyEncoding"`
+	ContentMode      string              `json:"contentMode"`
+	Description      string              `json:"description"`
+	HeaderPrefix     string              `json:"headerPrefix"`
+	Idempotency      string              `json:"idempotency"`
+	DeduplicationKey string              `json:"deduplicationKey"`
+	Required         []headerRequirement `json:"required"`
+	Optional         []headerRequirement `json:"optional"`
+	Extensions       []headerRequirement `json:"extensions"`
+	BodyEncoding     string              `json:"bodyEncoding"`
 }
 
 type headerRequirement struct {
@@ -2001,10 +2090,10 @@ func generateCloudEventsFixtures() cloudEventsFixtures {
 			},
 		},
 		MessageFormat: messageFormatSpec{
-			ContentMode:    "binary",
-			Description:    "CloudEvents attributes are carried as transport headers (AMQP application-properties, NATS headers). Event data occupies the message body unchanged.",
-			HeaderPrefix:   "ce-",
-			Idempotency:    "Consumers SHOULD be idempotent. Both AMQP and NATS provide at-least-once delivery, so duplicate messages are possible.",
+			ContentMode:      "binary",
+			Description:      "CloudEvents attributes are carried as transport headers (AMQP application-properties, NATS headers). Event data occupies the message body unchanged.",
+			HeaderPrefix:     "ce-",
+			Idempotency:      "Consumers SHOULD be idempotent. Both AMQP and NATS provide at-least-once delivery, so duplicate messages are possible.",
 			DeduplicationKey: "ce-id + ce-source",
 			Required: []headerRequirement{
 				{Header: CESpecVersion, Conformance: "MUST", Type: "string", Description: "CloudEvents specification version", Example: CESpecVersionValue},

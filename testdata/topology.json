@@ -608,6 +608,48 @@
       }
     },
     {
+      "name": "queue publish",
+      "serviceName": "task-sender",
+      "setups": [
+        {
+          "pattern": "queue-publish",
+          "direction": "publish",
+          "destinationQueue": "task-queue"
+        }
+      ],
+      "expectedEndpoints": {
+        "amqp": [
+          {
+            "direction": "publish",
+            "pattern": "queue-publish",
+            "exchangeName": "(default)",
+            "exchangeKind": "",
+            "queueName": "task-queue"
+          }
+        ],
+        "nats": [
+          {
+            "direction": "publish",
+            "pattern": "queue-publish",
+            "exchangeName": "task-queue",
+            "exchangeKind": "",
+            "queueName": "task-queue"
+          }
+        ]
+      },
+      "broker": {
+        "amqp": {
+          "exchanges": [],
+          "queues": [],
+          "bindings": []
+        },
+        "nats": {
+          "streams": [],
+          "consumers": []
+        }
+      }
+    },
+    {
       "name": "event stream consumer second service",
       "serviceName": "notifications",
       "setups": [
