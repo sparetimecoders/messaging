@@ -75,7 +75,7 @@ Examples:
 
 ## Naming Functions
 
-The spec module exports these functions in both Go and TypeScript:
+The messaging library exports these functions in both Go and TypeScript:
 
 | Function | Input | Output | Example |
 |----------|-------|--------|---------|

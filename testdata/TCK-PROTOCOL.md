@@ -173,14 +173,14 @@ The adapter should close all remaining services and exit after responding.
 
 ## Go Adapter Helper
 
-The `github.com/sparetimecoders/gomessaging/tck/adapterutil` package provides a reusable serve loop. Implement `adapterutil.ServiceManager` and call `adapterutil.Serve()`:
+The `github.com/sparetimecoders/messaging/tck/adapterutil` package provides a reusable serve loop. Implement `adapterutil.ServiceManager` and call `adapterutil.Serve()`:
 
 ```go
 package main
 
 import (
-    "github.com/sparetimecoders/gomessaging/tck"
-    "github.com/sparetimecoders/gomessaging/tck/adapterutil"
+    "github.com/sparetimecoders/messaging/tck"
+    "github.com/sparetimecoders/messaging/tck/adapterutil"
 )
 
 type myManager struct { /* ... */ }

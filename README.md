@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/sparetimecoders/messaging/actions"><img alt="CI" src="https://github.com/sparetimecoders/messaging/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/sparetimecoders/messaging/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/sparetimecoders/messaging"></a>
-  <a href="https://pkg.go.dev/github.com/sparetimecoders/gomessaging/spec"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/sparetimecoders/gomessaging/spec.svg"></a>
+  <a href="https://pkg.go.dev/github.com/sparetimecoders/messaging"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/sparetimecoders/messaging.svg"></a>
   <a href="https://www.npmjs.com/package/@gomessaging/spec"><img alt="npm" src="https://img.shields.io/npm/v/@gomessaging/spec"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 </p>
@@ -28,7 +28,7 @@ gomessaging defines a **shared specification** for event-driven microservices th
 
 | Package | Language | Description |
 |---------|----------|-------------|
-| [`gomessaging/spec`](https://github.com/sparetimecoders/messaging) | Go | Specification, TCK runner, validation, visualization |
+| [`messaging`](https://github.com/sparetimecoders/messaging) | Go | Specification, TCK runner, validation, visualization |
 | [`@gomessaging/spec`](https://github.com/sparetimecoders/messaging/tree/main/typescript) | TypeScript | Shared messaging library (mirrors Go) |
 | [`gomessaging/amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go | AMQP/RabbitMQ transport |
 | [`gomessaging/nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go | NATS/JetStream transport |
@@ -50,8 +50,8 @@ messaging (this repo)
 
 ```go
 import (
-    "github.com/sparetimecoders/gomessaging/amqp"
-    "github.com/sparetimecoders/gomessaging/spec"
+    "github.com/sparetimecoders/go-messaging-amqp"
+    "github.com/sparetimecoders/messaging"
 )
 
 // Create a publisher
@@ -61,7 +61,7 @@ pub := amqp.NewPublisher()
 conn, _ := amqp.NewFromURL("order-service", "amqp://localhost:5672/")
 conn.Start(ctx,
     amqp.EventStreamPublisher(pub),
-    amqp.EventStreamConsumer("Order.Created", func(ctx context.Context, e spec.ConsumableEvent[OrderCreated]) error {
+    amqp.EventStreamConsumer("Order.Created", func(ctx context.Context, e messaging.ConsumableEvent[OrderCreated]) error {
         fmt.Printf("Order %s from %s\n", e.Payload.OrderID, e.Source)
         return nil
     }),
@@ -175,20 +175,20 @@ All messages carry [CloudEvents 1.0](https://cloudevents.io/) metadata in binary
 
 Headers are set automatically on publish. On consume, `ValidateCEHeaders()` checks for required attributes and logs warnings for missing values. Legacy messages without CE headers are enriched transparently.
 
-AMQP uses the `cloudEvents:` prefix per the [AMQP binding spec](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/amqp-protocol-binding.md). The spec layer normalizes all prefix variants (`cloudEvents:*`, `cloudEvents_*`, `ce-*`) to the canonical `ce-` form on consume.
+AMQP uses the `cloudEvents:` prefix per the [AMQP binding spec](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/amqp-protocol-binding.md). The messaging library normalizes all prefix variants (`cloudEvents:*`, `cloudEvents_*`, `ce-*`) to the canonical `ce-` form on consume.
 
 ## Topology Validation
 
-The spec module provides static analysis tools for messaging topologies:
+The messaging library provides static analysis tools for messaging topologies:
 
 ```go
-import "github.com/sparetimecoders/gomessaging/spec"
+import "github.com/sparetimecoders/messaging"
 
 // Validate a single service
-errors := spec.Validate(myTopology)
+errors := messaging.Validate(myTopology)
 
 // Cross-validate multiple services (consumers have matching publishers)
-errors := spec.ValidateTopologies(allTopologies)
+errors := messaging.ValidateTopologies(allTopologies)
 ```
 
 Validation catches:
@@ -203,7 +203,7 @@ Validation catches:
 Generate Mermaid flowchart diagrams from service topologies:
 
 ```go
-diagram := spec.Mermaid(allTopologies)
+diagram := messaging.Mermaid(allTopologies)
 ```
 
 Output:
@@ -308,7 +308,7 @@ go run ./cmd/tck-runner/ --adapter ../path/to/adapter-binary
 Implement the [JSON-RPC protocol](testdata/TCK-PROTOCOL.md) in your language. The Go `adapterutil` package provides a reusable handler:
 
 ```go
-import "github.com/sparetimecoders/gomessaging/tck/adapterutil"
+import "github.com/sparetimecoders/messaging/tck/adapterutil"
 
 func main() {
     mgr := &myServiceManager{url: os.Getenv("RABBITMQ_URL")}
@@ -366,7 +366,7 @@ To create a conformant transport in any language:
 
 ```
 .
-├── *.go                  Go spec module (naming, topology, validation, CloudEvents, visualization)
+├── *.go                  Go shared library (naming, topology, validation, CloudEvents, visualization)
 ├── spectest/             Conformance test helpers and assertion functions
 ├── tck/                  Technology Compatibility Kit (runner, protocol, broker access)
 │   ├── adapterutil/      Reusable JSON-RPC handler for adapter implementations

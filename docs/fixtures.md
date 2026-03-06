@@ -62,7 +62,7 @@ Input/output pairs for every naming function. Each entry has an `input` (functio
 ```go
 // Go
 for _, tc := range fixtures.TopicExchangeName {
-    got := spec.TopicExchangeName(tc.Input[0])
+    got := messaging.TopicExchangeName(tc.Input[0])
     assert.Equal(t, tc.Expected, got)
 }
 ```

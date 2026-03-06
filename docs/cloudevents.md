@@ -69,9 +69,9 @@ This normalization happens at the transport boundary, so handler code always see
 `ValidateCEHeaders()` checks that required CloudEvents attributes are present and are string values. It returns a list of warnings (empty list = valid).
 
 ```go
-import "github.com/sparetimecoders/gomessaging/spec"
+import "github.com/sparetimecoders/messaging"
 
-warnings := spec.ValidateCEHeaders(headers)
+warnings := messaging.ValidateCEHeaders(headers)
 // warnings: ["missing required CloudEvents attribute: ce-source"]
 ```
 
@@ -88,7 +88,7 @@ Validation is advisory — messages with missing CE headers are still delivered.
 Messages from systems that don't set CloudEvents headers are handled gracefully through **metadata enrichment**:
 
 ```go
-metadata := spec.EnrichLegacyMetadata(metadata, deliveryInfo, uuidGenerator)
+metadata := messaging.EnrichLegacyMetadata(metadata, deliveryInfo, uuidGenerator)
 ```
 
 Enrichment fills in missing fields from the delivery context:
@@ -111,7 +111,7 @@ The `HasCEHeaders()` function distinguishes between:
 On the consumer side, CloudEvents attributes are parsed into a structured `Metadata` object:
 
 ```go
-func handler(ctx context.Context, e spec.ConsumableEvent[OrderCreated]) error {
+func handler(ctx context.Context, e messaging.ConsumableEvent[OrderCreated]) error {
     e.ID              // "550e8400-e29b-41d4-a716-446655440000"
     e.Type            // "Order.Created"
     e.Source          // "order-service"

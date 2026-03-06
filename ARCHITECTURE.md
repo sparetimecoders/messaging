@@ -9,8 +9,8 @@ The project is split across five repositories:
 | Repository | Contents | Module / Package |
 |------------|----------|------------------|
 | [`messaging`](https://github.com/sparetimecoders/messaging) (this repo) | Go + TypeScript shared library, TCK, testdata, specverify, docs | `github.com/sparetimecoders/messaging`, `@gomessaging/spec` |
-| [`go-messaging-amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go AMQP transport + TCK adapter | `github.com/sparetimecoders/gomessaging/amqp` |
-| [`go-messaging-nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go NATS transport + TCK adapter | `github.com/sparetimecoders/gomessaging/nats` |
+| [`go-messaging-amqp`](https://github.com/sparetimecoders/go-messaging-amqp) | Go AMQP transport + TCK adapter | `github.com/sparetimecoders/go-messaging-amqp` |
+| [`go-messaging-nats`](https://github.com/sparetimecoders/go-messaging-nats) | Go NATS transport + TCK adapter | `github.com/sparetimecoders/go-messaging-nats` |
 | [`nodejs-messaging-amqp`](https://github.com/sparetimecoders/nodejs-messaging-amqp) | Node AMQP transport + TCK adapter | `@gomessaging/amqp` |
 | [`nodejs-messaging-nats`](https://github.com/sparetimecoders/nodejs-messaging-nats) | Node NATS transport + TCK adapter | `@gomessaging/nats` |
 
@@ -18,7 +18,7 @@ The project is split across five repositories:
 
 ```
 .
-├── *.go                  Go spec module (naming, topology, validation, CloudEvents, visualization)
+├── *.go                  Go shared library (naming, topology, validation, CloudEvents, visualization)
 ├── spectest/             Conformance test helpers and assertion functions
 ├── tck/                  Technology Compatibility Kit (runner, protocol, broker access)
 │   ├── adapterutil/      Reusable JSON-RPC handler for adapter implementations
@@ -38,7 +38,7 @@ messaging (spec + tck)
   └── nodejs-messaging-nats (npm dep on @gomessaging/spec)
 ```
 
-The `spec` module has zero transport dependencies. Transport modules import `spec` for naming functions, types, and validation. This separation allows any language to implement a conformant transport by following the spec.
+The `messaging` module has zero transport dependencies. Transport modules import `messaging` for naming functions, types, and validation. This separation allows any language to implement a conformant transport by following the spec.
 
 ## Communication Patterns
 
@@ -155,7 +155,7 @@ Go transports use `log/slog`. Node.js transports accept a logger interface compa
 
 ## Topology Validation and Visualization
 
-The spec module provides tools for static analysis of messaging topologies:
+The messaging library provides tools for static analysis of messaging topologies:
 
 - **`Validate(topology)`** - checks a single service's topology for structural correctness
 - **`ValidateTopologies([]topology)`** - cross-service validation (consumers have matching publishers)

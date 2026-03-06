@@ -8,13 +8,13 @@ gomessaging provides a unified API for event-driven microservices across AMQP/Ra
 
 ```sh
 # AMQP transport
-go get github.com/sparetimecoders/gomessaging/amqp
+go get github.com/sparetimecoders/go-messaging-amqp
 
 # NATS transport
-go get github.com/sparetimecoders/gomessaging/nats
+go get github.com/sparetimecoders/go-messaging-nats
 
-# Spec module (naming, validation, visualization — no transport dependency)
-go get github.com/sparetimecoders/gomessaging/spec
+# Messaging library (naming, validation, visualization — no transport dependency)
+go get github.com/sparetimecoders/messaging
 ```
 
 ### Node.js / TypeScript
@@ -26,7 +26,7 @@ npm install @gomessaging/amqp
 # NATS transport
 npm install @gomessaging/nats
 
-# Spec module only
+# Spec library only
 npm install @gomessaging/spec
 ```
 
@@ -44,8 +44,8 @@ import (
     "fmt"
     "log"
 
-    "github.com/sparetimecoders/gomessaging/amqp"
-    "github.com/sparetimecoders/gomessaging/spec"
+    "github.com/sparetimecoders/go-messaging-amqp"
+    "github.com/sparetimecoders/messaging"
 )
 
 type OrderCreated struct {
@@ -71,7 +71,7 @@ func main() {
 
         // Consume events by routing key
         amqp.EventStreamConsumer("Order.Created",
-            func(ctx context.Context, e spec.ConsumableEvent[OrderCreated]) error {
+            func(ctx context.Context, e messaging.ConsumableEvent[OrderCreated]) error {
                 fmt.Printf("Received order %s (amount: %.2f) from %s\n",
                     e.Payload.OrderID, e.Payload.Amount, e.Source)
                 return nil

@@ -213,10 +213,10 @@ Timestamp is an RFC 3339 string. Implementations MUST validate the `ce-time` val
 
 ## Using Fixtures in Go
 
-The `spec/spectest` package provides helpers:
+The `spectest` package provides helpers:
 
 ```go
-import "github.com/sparetimecoders/gomessaging/spec/spectest"
+import "github.com/sparetimecoders/messaging/spectest"
 
 scenarios := spectest.LoadScenarios(t, "path/to/topology.json")
 for _, sc := range scenarios {
@@ -240,7 +240,7 @@ The fixture files are the single source of truth. If your implementation disagre
 Fixtures are generated from Go source code to ensure they stay in sync with the reference implementation:
 
 ```bash
-go test -run TestGenerateFixtures ./spec/...
+go test -run TestGenerateFixtures ./...
 ```
 
 If a fixture file is out of date, the test will regenerate it and fail. Re-run to confirm stability.

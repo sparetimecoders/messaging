@@ -34,9 +34,9 @@ Transport implementations export their topology via a `Topology()` method, makin
 Check structural correctness of one service's topology:
 
 ```go
-import "github.com/sparetimecoders/gomessaging/spec"
+import "github.com/sparetimecoders/messaging"
 
-errors := spec.Validate(topology)
+errors := messaging.Validate(topology)
 ```
 
 Catches:
@@ -52,7 +52,7 @@ Catches:
 Verify that consumers have matching publishers across the entire system:
 
 ```go
-errors := spec.ValidateTopologies([]spec.Topology{orders, notifications, analytics})
+errors := messaging.ValidateTopologies([]messaging.Topology{orders, notifications, analytics})
 ```
 
 Catches everything from single-service validation plus:
@@ -66,7 +66,7 @@ Exact-match consumers (no wildcards) are validated strictly. Wildcard consumers 
 Generate [Mermaid](https://mermaid.js.org/) flowchart diagrams from service topologies:
 
 ```go
-diagram := spec.Mermaid([]spec.Topology{orders, notifications, analytics})
+diagram := messaging.Mermaid([]messaging.Topology{orders, notifications, analytics})
 ```
 
 Output:
@@ -116,7 +116,7 @@ flowchart LR
 Reconstruct topologies from a live RabbitMQ broker using the Management API:
 
 ```go
-topologies, err := spec.DiscoverTopologies(spec.BrokerConfig{
+topologies, err := messaging.DiscoverTopologies(messaging.BrokerConfig{
     URL:      "http://localhost:15672",
     Username: "guest",
     Password: "guest",

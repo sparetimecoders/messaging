@@ -1,6 +1,6 @@
 # @gomessaging/spec
 
-TypeScript implementation of the [gomessaging specification](https://github.com/sparetimecoders/messaging). This package mirrors the Go spec module, providing identical naming functions, validation, CloudEvents handling, routing, and visualization for Node.js/TypeScript transport implementations.
+TypeScript implementation of the [gomessaging specification](https://github.com/sparetimecoders/messaging). This package mirrors the Go messaging library, providing identical naming functions, validation, CloudEvents handling, routing, and visualization for Node.js/TypeScript transport implementations.
 
 ## Installation
 
@@ -174,7 +174,7 @@ interface ConsumableEvent<T> extends Metadata {
 
 ## Conformance
 
-This package is tested against the shared JSON fixtures in [`testdata/`](../testdata/). The same fixtures are used by the Go spec module, ensuring both implementations produce identical outputs.
+This package is tested against the shared JSON fixtures in [`testdata/`](../testdata/). The same fixtures are used by the Go messaging library, ensuring both implementations produce identical outputs.
 
 ```sh
 npm test

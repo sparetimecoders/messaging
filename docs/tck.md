@@ -110,7 +110,7 @@ Your adapter implements this interface (or its equivalent in your language):
 ```go
 type ServiceManager interface {
     StartService(ctx context.Context, name string, intents []SetupIntent) (
-        topology spec.Topology,
+        topology messaging.Topology,
         publishers map[string]Publisher,
         err error,
     )
@@ -130,7 +130,7 @@ package main
 
 import (
     "os"
-    "github.com/sparetimecoders/gomessaging/tck/adapterutil"
+    "github.com/sparetimecoders/messaging/tck/adapterutil"
 )
 
 func main() {

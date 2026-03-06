@@ -14,7 +14,7 @@ A transport library that:
 
 ## Step 1: Port the Spec
 
-Start by implementing the naming functions and core types from the spec module. You can either:
+Start by implementing the naming functions and core types from the messaging library. You can either:
 
 - **Translate from source**: Port the Go or TypeScript spec code directly
 - **Use the JSON fixtures**: Load [`testdata/naming.json`](../testdata/naming.json) as your test oracle and implement functions that produce matching outputs
@@ -57,7 +57,7 @@ Load each JSON fixture file and verify your implementation produces identical ou
 | [`cloudevents.json`](../testdata/cloudevents.json) | CE header validation and metadata extraction |
 | [`constants.json`](../testdata/constants.json) | Enum values match |
 
-The `spectest` package (Go) and the test files in `typescript/__tests__/` show how to load and assert against fixtures.
+The `spectest` package (Go, at `github.com/sparetimecoders/messaging/spectest`) and the test files in `typescript/__tests__/` show how to load and assert against fixtures.
 
 ## Step 3: Map Patterns to Broker Primitives
 
@@ -153,16 +153,16 @@ Use `WithRoutingKeyMapper()` to control label cardinality — map high-cardinali
 Implement a `Topology()` method that returns the service's declared endpoints without connecting to a broker:
 
 ```go
-func (c *Connection) Topology() spec.Topology {
-    return spec.Topology{
-        Transport:   spec.TransportAMQP,
+func (c *Connection) Topology() messaging.Topology {
+    return messaging.Topology{
+        Transport:   messaging.TransportAMQP,
         ServiceName: c.serviceName,
         Endpoints:   c.endpoints,
     }
 }
 ```
 
-This enables `specverify` and `spec.Mermaid()` to work with your transport.
+This enables `specverify` and `messaging.Mermaid()` to work with your transport.
 
 ## Step 7: Write a TCK Adapter
 

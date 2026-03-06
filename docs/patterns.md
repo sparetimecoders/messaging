@@ -113,7 +113,7 @@ caller <──response── │ billing.headers.exchange.response  │ <──�
 ```go
 // Go — register as a request handler
 amqp.ServiceRequestConsumer("billing", "GetInvoice",
-    func(ctx context.Context, e spec.ConsumableEvent[GetInvoiceRequest]) (Invoice, error) {
+    func(ctx context.Context, e messaging.ConsumableEvent[GetInvoiceRequest]) (Invoice, error) {
         return lookupInvoice(e.Payload.InvoiceID)
     })
 
