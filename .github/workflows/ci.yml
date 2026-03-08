@@ -54,9 +54,15 @@ jobs:
       - name: Typecheck
         working-directory: typescript
         run: bun run typecheck
-      - name: Test
+      - name: Test with coverage
         working-directory: typescript
-        run: bun test
+        run: bun test --coverage --coverage-reporter=lcov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          files: ./typescript/coverage/lcov.info
+          flags: typescript
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Build
         working-directory: typescript
         run: bun run build
