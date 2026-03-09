@@ -6,15 +6,18 @@
     ".": {
       "release-type": "go",
       "include-component-in-tag": false,
-      "exclude-paths": ["typescript", "tck", "specverify"]
+      "exclude-paths": ["typescript", "tck", "specverify"],
+      "initial-version": "0.0.1"
     },
     "tck": {
       "release-type": "go",
-      "component": "tck"
+      "component": "tck",
+      "initial-version": "0.0.1"
     },
     "specverify": {
       "release-type": "go",
-      "component": "specverify"
+      "component": "specverify",
+      "initial-version": "0.0.1"
     },
     "typescript": {
       "release-type": "node",
