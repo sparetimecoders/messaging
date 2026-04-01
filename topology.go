@@ -61,13 +61,13 @@ const (
 // Endpoint describes a single exchange/queue/binding that a service declares.
 type Endpoint struct {
 	Direction    EndpointDirection `json:"direction"`
-	Pattern      Pattern          `json:"pattern"`
-	ExchangeName string           `json:"exchangeName"`
-	ExchangeKind ExchangeKind     `json:"exchangeKind"`
-	QueueName    string           `json:"queueName,omitempty"`
-	RoutingKey   string           `json:"routingKey,omitempty"`
-	MessageType  string           `json:"messageType,omitempty"`
-	Ephemeral    bool             `json:"ephemeral,omitempty"`
+	Pattern      Pattern           `json:"pattern"`
+	ExchangeName string            `json:"exchangeName"`
+	ExchangeKind ExchangeKind      `json:"exchangeKind"`
+	QueueName    string            `json:"queueName,omitempty"`
+	RoutingKey   string            `json:"routingKey,omitempty"`
+	MessageType  string            `json:"messageType,omitempty"`
+	Ephemeral    bool              `json:"ephemeral,omitempty"`
 }
 
 // Topology describes the full messaging topology declared by a single service.

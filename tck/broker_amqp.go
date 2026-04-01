@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -218,7 +219,15 @@ type managementBinding struct {
 
 func queryManagementAPI[R any](t spectest.T, baseURL, path string) R {
 	t.Helper()
-	resp, err := http.Get(baseURL + path)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	reqURL := baseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	spectest.RequireNoError(t, err)
+	setManagementAuth(req, baseURL)
+
+	resp, err := http.DefaultClient.Do(req)
 	spectest.RequireNoError(t, err)
 	defer resp.Body.Close()
 
@@ -254,10 +263,22 @@ func intFromTable(args map[string]any, key string) int {
 
 func deleteResource(t spectest.T, baseURL, path string) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodDelete, baseURL+path, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, baseURL+path, nil)
 	spectest.RequireNoError(t, err)
+	setManagementAuth(req, baseURL)
 
 	resp, err := http.DefaultClient.Do(req)
 	spectest.RequireNoError(t, err)
 	resp.Body.Close()
+}
+
+// setManagementAuth extracts credentials from the management URL and sets basic auth on the request.
+func setManagementAuth(req *http.Request, baseURL string) {
+	if u, err := url.Parse(baseURL); err == nil && u.User != nil {
+		pwd, _ := u.User.Password()
+		req.SetBasicAuth(u.User.Username(), pwd)
+	}
 }

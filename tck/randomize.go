@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/sparetimecoders/messaging/spectest"
@@ -108,6 +109,8 @@ func InjectNonce(payload json.RawMessage) (json.RawMessage, string) {
 
 func randomSuffix() string {
 	b := make([]byte, 4) // 4 bytes = 8 hex chars
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Sprintf("tck: crypto/rand.Read failed: %v", err))
+	}
 	return hex.EncodeToString(b)
 }

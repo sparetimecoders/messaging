@@ -40,15 +40,11 @@ func MatchRoutingKey(pattern, routingKey string) bool {
 
 // RoutingKeyOverlaps returns true if two binding patterns could match the same routing key.
 func RoutingKeyOverlaps(p1, p2 string) bool {
-	if p1 == p2 {
-		return true
-	} else if MatchRoutingKey(p1, p2) {
-		return true
-	} else if MatchRoutingKey(p2, p1) {
-		return true
-	}
-	return false
+	return p1 == p2 || MatchRoutingKey(p1, p2) || MatchRoutingKey(p2, p1)
 }
+
+// routingKeyReplacer converts AMQP/NATS binding pattern tokens to regex equivalents.
+var routingKeyReplacer = strings.NewReplacer(".", "\\.", "*", "[^.]*", "#", ".*")
 
 // routingKeyToRegex converts an AMQP/NATS binding pattern to a regular expression.
 // For example:
@@ -56,6 +52,5 @@ func RoutingKeyOverlaps(p1, p2 string) bool {
 //	user.* => user\.[^.]*
 //	user.# => user\..*
 func routingKeyToRegex(s string) string {
-	replace := strings.Replace(strings.Replace(strings.Replace(s, ".", "\\.", -1), "*", "[^.]*", -1), "#", ".*", -1)
-	return fmt.Sprintf("^%s$", replace)
+	return fmt.Sprintf("^%s$", routingKeyReplacer.Replace(s))
 }

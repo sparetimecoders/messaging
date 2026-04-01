@@ -31,10 +31,10 @@ import (
 
 func TestDiscoverTopologies(t *testing.T) {
 	exchanges := []rmqExchange{
-		{Name: "", Type: "direct"},                      // default exchange, filtered
-		{Name: "amq.topic", Type: "topic"},              // internal, filtered
-		{Name: "events.topic.exchange", Type: "topic"},  // our event exchange
-		{Name: "audit.topic.exchange", Type: "topic"},   // custom stream
+		{Name: "", Type: "direct"},                     // default exchange, filtered
+		{Name: "amq.topic", Type: "topic"},             // internal, filtered
+		{Name: "events.topic.exchange", Type: "topic"}, // our event exchange
+		{Name: "audit.topic.exchange", Type: "topic"},  // custom stream
 		{Name: "email-svc.direct.exchange.request", Type: "direct"},
 		{Name: "email-svc.headers.exchange.response", Type: "headers"},
 	}
@@ -215,12 +215,12 @@ func TestDiscoverTopologiesAndVisualize(t *testing.T) {
 
 func TestInferServiceAndPattern(t *testing.T) {
 	tests := []struct {
-		name         string
-		queue        string
-		exchange     string
-		kind         ExchangeKind
-		wantService  string
-		wantPattern  Pattern
+		name        string
+		queue       string
+		exchange    string
+		kind        ExchangeKind
+		wantService string
+		wantPattern Pattern
 	}{
 		{
 			name:        "event stream consumer",
