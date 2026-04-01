@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/sparetimecoders/messaging/spectest"
@@ -219,6 +220,7 @@ func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKRep
 		Timestamp:    time.Now(),
 	}
 
+	var mu sync.Mutex
 	var runScenarios []Scenario
 	for _, scenario := range scenarios {
 		if len(scenario.Transports) > 0 && !slices.Contains(scenario.Transports, key) {
@@ -229,6 +231,7 @@ func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKRep
 		s := scenario
 		t.Run(s.Name, func(t spectest.T) {
 			sr := RunScenarioWithReport(t, adapter, s)
+			mu.Lock()
 			report.Scenarios = append(report.Scenarios, sr)
 			if sr.Passed {
 				report.Summary.Passed++
@@ -236,6 +239,7 @@ func RunTCKWithReport(t spectest.T, fixturePath string, adapter Adapter) *TCKRep
 				report.Summary.Failed++
 			}
 			report.Summary.Total++
+			mu.Unlock()
 		})
 	}
 

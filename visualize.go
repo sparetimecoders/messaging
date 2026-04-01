@@ -177,21 +177,13 @@ func Mermaid(topologies []Topology) string {
 		}
 	}
 
-	// Style declarations
-	if len(sortedServices) > 0 {
-		var ids []string
-		for _, svc := range sortedServices {
-			ids = append(ids, sanitizeID(svc))
-		}
-		b.WriteString(fmt.Sprintf("    style %s fill:#f9f,stroke:#333\n", strings.Join(ids, ",")))
+	// Style declarations (one per node for Mermaid compatibility)
+	for _, svc := range sortedServices {
+		b.WriteString(fmt.Sprintf("    style %s fill:#f9f,stroke:#333\n", sanitizeID(svc)))
 	}
-	if len(sortedExchangeNames) > 0 {
-		var ids []string
-		for _, name := range sortedExchangeNames {
-			entry := exchanges[name]
-			ids = append(ids, exchangeID(entry.transport, name))
-		}
-		b.WriteString(fmt.Sprintf("    style %s fill:#bbf,stroke:#333\n", strings.Join(ids, ",")))
+	for _, name := range sortedExchangeNames {
+		entry := exchanges[name]
+		b.WriteString(fmt.Sprintf("    style %s fill:#bbf,stroke:#333\n", exchangeID(entry.transport, name)))
 	}
 
 	return b.String()

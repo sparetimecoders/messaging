@@ -28,7 +28,7 @@ import (
 )
 
 // ErrParseJSON is returned when the event payload cannot be parsed as JSON.
-var ErrParseJSON = errors.New("failed to parse")
+var ErrParseJSON = errors.New("failed to parse JSON payload")
 
 // EventHandler is a function that is used to handle events of a specific type.
 // If processing fails, an error should be returned and the message will be re-queued.

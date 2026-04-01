@@ -60,7 +60,7 @@ func AllSupportedIntents() []IntentKey {
 }
 
 // ComputeCoverageMatrix scans all scenario intents and reports which of the
-// 9 supported combinations are covered and which are missing.
+// 11 supported combinations are covered and which are missing.
 func ComputeCoverageMatrix(scenarios []Scenario) CoverageMatrix {
 	// Build a map from IntentKey to list of scenario names.
 	covered := make(map[IntentKey][]string)

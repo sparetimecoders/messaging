@@ -279,6 +279,9 @@ func (a *SubprocessAdapter) readResponse(t spectest.T, expectedID int, timeout t
 		ok   bool
 	}
 	ch := make(chan scanResult, 1)
+	// Deliberate leak: this goroutine may outlive the timeout because bufio.Scanner.Scan
+	// blocks on I/O with no cancellation support. The subprocess is killed in shutdown(),
+	// which closes the pipe and unblocks the read, so the goroutine exits shortly after.
 	go func() {
 		ok := a.scanner.Scan()
 		ch <- scanResult{line: a.scanner.Text(), ok: ok}
