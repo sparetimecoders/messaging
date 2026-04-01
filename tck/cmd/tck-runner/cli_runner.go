@@ -109,7 +109,14 @@ func (r *cliRunner) Run(name string, f func(spectest.T)) bool {
 	start := time.Now()
 
 	// Run the test function, catching failNow panics.
+	// Cleanups run in a deferred function to guarantee execution even on panic.
 	func() {
+		defer func() {
+			// Run cleanups in LIFO order before handling the panic.
+			for i := len(child.cleanups) - 1; i >= 0; i-- {
+				child.cleanups[i]()
+			}
+		}()
 		defer func() {
 			if p := recover(); p != nil {
 				if _, ok := p.(failNowSentinel); !ok {
@@ -120,11 +127,6 @@ func (r *cliRunner) Run(name string, f func(spectest.T)) bool {
 		}()
 		f(child)
 	}()
-
-	// Run cleanups in LIFO order.
-	for i := len(child.cleanups) - 1; i >= 0; i-- {
-		child.cleanups[i]()
-	}
 
 	elapsed := time.Since(start)
 	if child.failed {

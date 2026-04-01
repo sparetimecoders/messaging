@@ -31,8 +31,9 @@ const NotificationSourceConsumer NotificationSource = "CONSUMER"
 // Notification represents a successful event processing notification.
 type Notification struct {
 	DeliveryInfo DeliveryInfo
-	Duration     int64
-	Source       NotificationSource
+	// Duration is the processing time in nanoseconds.
+	Duration int64
+	Source   NotificationSource
 }
 
 // ErrorNotification represents a failed event processing notification.
@@ -40,5 +41,6 @@ type ErrorNotification struct {
 	Error        error
 	DeliveryInfo DeliveryInfo
 	Source       NotificationSource
-	Duration     int64
+	// Duration is the processing time in nanoseconds.
+	Duration int64
 }

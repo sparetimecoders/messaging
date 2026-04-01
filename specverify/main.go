@@ -327,7 +327,7 @@ func cmdDiscover(cfg config, args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		dir := args[0]
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			writeResult(cfg, stdout, result{OK: false, Errors: []string{err.Error()}})
 			return 1
 		}
@@ -338,7 +338,7 @@ func cmdDiscover(cfg config, args []string, stdout, stderr io.Writer) int {
 				return 1
 			}
 			path := filepath.Join(dir, topo.ServiceName+".json")
-			if err := os.WriteFile(path, data, 0644); err != nil {
+			if err := os.WriteFile(path, data, 0o644); err != nil {
 				writeResult(cfg, stdout, result{OK: false, Errors: []string{err.Error()}})
 				return 1
 			}
@@ -414,6 +414,35 @@ func cmdVisualize(cfg config, args []string, stdin io.Reader, stdout, stderr io.
 
 	fmt.Fprint(stdout, diagram)
 	return 0
+}
+
+// readTopology reads and parses a topology from a file path or stdin (when path is "-").
+// Returns the topology and an empty string on success, or a zero topology and an error message.
+func readTopology(path string, stdin io.Reader) (messaging.Topology, string) {
+	var r io.Reader
+	name := path
+	if path == "-" {
+		name = "<stdin>"
+		r = stdin
+	} else {
+		f, err := os.Open(path)
+		if err != nil {
+			return messaging.Topology{}, err.Error()
+		}
+		defer f.Close()
+		r = f
+	}
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return messaging.Topology{}, fmt.Sprintf("reading %s: %s", name, err)
+	}
+
+	var topo messaging.Topology
+	if err := json.Unmarshal(data, &topo); err != nil {
+		return messaging.Topology{}, fmt.Sprintf("parsing %s: %s", name, err)
+	}
+	return topo, ""
 }
 
 type result struct {

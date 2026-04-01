@@ -23,6 +23,7 @@
 package messaging
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 // uuidSuffix matches a trailing UUID (8-4-4-4-12 hex) used in transient queue names.
@@ -216,8 +218,11 @@ func inferServiceAndPattern(queueName, exchangeName string, kind ExchangeKind) (
 func fetchJSON[T any](cfg BrokerConfig, path string) (T, error) {
 	var zero T
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	reqURL := strings.TrimRight(cfg.URL, "/") + path
-	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		return zero, err
 	}

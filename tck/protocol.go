@@ -72,13 +72,13 @@ type HelloResult struct {
 
 // StartServiceParams requests the adapter to start a service with the given intents.
 type StartServiceParams struct {
-	ServiceName string              `json:"serviceName"`
+	ServiceName string                 `json:"serviceName"`
 	Intents     []spectest.SetupIntent `json:"intents"`
 }
 
 // StartServiceResult is the response after starting a service.
 type StartServiceResult struct {
-	PublisherKeys []string      `json:"publisherKeys"`
+	PublisherKeys []string           `json:"publisherKeys"`
 	Topology      messaging.Topology `json:"topology"`
 }
 
@@ -107,9 +107,9 @@ type ReceivedResult struct {
 
 // ReceivedMessageWire is the wire format of a received message.
 type ReceivedMessageWire struct {
-	RoutingKey   string          `json:"routingKey"`
-	Payload      json.RawMessage `json:"payload"`
-	Metadata     messaging.Metadata   `json:"metadata"`
+	RoutingKey   string                 `json:"routingKey"`
+	Payload      json.RawMessage        `json:"payload"`
+	Metadata     messaging.Metadata     `json:"metadata"`
 	DeliveryInfo messaging.DeliveryInfo `json:"deliveryInfo"`
 }
 

@@ -239,17 +239,17 @@ type fakeT struct {
 	logs   []string
 }
 
-func (f *fakeT) Helper()                               {}
-func (f *fakeT) Fatalf(format string, args ...any)      { f.failed = true }
-func (f *fakeT) Fatal(args ...any)                      { f.failed = true }
-func (f *fakeT) Errorf(format string, args ...any)      { f.failed = true }
-func (f *fakeT) Logf(format string, args ...any)        {}
-func (f *fakeT) Log(args ...any)                        {}
-func (f *fakeT) Cleanup(func())                         {}
-func (f *fakeT) Run(string, func(spectest.T)) bool      { return true }
-func (f *fakeT) FailNow()                               { f.failed = true }
-func (f *fakeT) Failed() bool                           { return f.failed }
-func (f *fakeT) Name() string                           { return "fakeT" }
+func (f *fakeT) Helper()                           {}
+func (f *fakeT) Fatalf(format string, args ...any) { f.failed = true }
+func (f *fakeT) Fatal(args ...any)                 { f.failed = true }
+func (f *fakeT) Errorf(format string, args ...any) { f.failed = true }
+func (f *fakeT) Logf(format string, args ...any)   {}
+func (f *fakeT) Log(args ...any)                   {}
+func (f *fakeT) Cleanup(func())                    {}
+func (f *fakeT) Run(string, func(spectest.T)) bool { return true }
+func (f *fakeT) FailNow()                          { f.failed = true }
+func (f *fakeT) Failed() bool                      { return f.failed }
+func (f *fakeT) Name() string                      { return "fakeT" }
 
 func TestGenerateMarkdownEphemeralColumn(t *testing.T) {
 	report := &TCKReport{

@@ -33,17 +33,10 @@ import (
 // DefaultEventExchangeName is the default exchange name used for event streaming.
 const DefaultEventExchangeName = "events"
 
-// Exchange kind constants matching AMQP exchange types.
-const (
-	KindTopic   = "topic"
-	KindDirect  = "direct"
-	KindHeaders = "headers"
-)
-
 // TopicExchangeName returns the topic exchange name for the given name.
 // Format: <name>.topic.exchange
 func TopicExchangeName(name string) string {
-	return fmt.Sprintf("%s.%s.exchange", name, KindTopic)
+	return fmt.Sprintf("%s.%s.exchange", name, string(ExchangeTopic))
 }
 
 // ServiceEventQueueName returns the durable event queue name for a service.
@@ -55,13 +48,13 @@ func ServiceEventQueueName(exchangeName, service string) string {
 // ServiceRequestExchangeName returns the direct exchange name for requests to a service.
 // Format: <service>.direct.exchange.request
 func ServiceRequestExchangeName(service string) string {
-	return fmt.Sprintf("%s.%s.exchange.request", service, KindDirect)
+	return fmt.Sprintf("%s.%s.exchange.request", service, string(ExchangeDirect))
 }
 
 // ServiceResponseExchangeName returns the headers exchange name for responses from a service.
 // Format: <service>.headers.exchange.response
 func ServiceResponseExchangeName(service string) string {
-	return fmt.Sprintf("%s.%s.exchange.response", service, KindHeaders)
+	return fmt.Sprintf("%s.%s.exchange.response", service, string(ExchangeHeaders))
 }
 
 // ServiceRequestQueueName returns the queue name for requests to a service.
