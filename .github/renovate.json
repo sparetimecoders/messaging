@@ -1,6 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["local>sparetimecoders/renovate-config"],
+  "constraints": {
+    "go": "1.25.0"
+  },
+  "postUpdateOptions": ["goModTidy", "goModTidyE", "goWorkspaceTidy"],
   "packageRules": [
     {
       "description": "Use fix(deps) for library dependencies so release-please creates releases",
