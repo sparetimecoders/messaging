@@ -13,11 +13,13 @@
     "tck": {
       "release-type": "go",
       "component": "tck",
+      "separator": "/",
       "initial-version": "0.0.1"
     },
     "specverify": {
       "release-type": "go",
       "component": "specverify",
+      "separator": "/",
       "initial-version": "0.0.1"
     },
     "typescript": {
