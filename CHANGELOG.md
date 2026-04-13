@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.2](https://github.com/sparetimecoders/messaging/compare/v0.0.1...v0.0.2) (2026-04-13)
+
+
+### Bug Fixes
+
+* address code review findings across spec and TCK ([#42](https://github.com/sparetimecoders/messaging/issues/42)) ([874ab17](https://github.com/sparetimecoders/messaging/commit/874ab17e12a8d5322af2d27d2c91e25376bf8774))
+* **deps:** update module github.com/nats-io/nats.go to v1.50.0 ([#36](https://github.com/sparetimecoders/messaging/issues/36)) ([77b3de6](https://github.com/sparetimecoders/messaging/commit/77b3de6eb5f1afa8e718c4fa4420f844265ba091))
+* **release-please:** use slash separator for go submodule tags ([#45](https://github.com/sparetimecoders/messaging/issues/45)) ([c772d30](https://github.com/sparetimecoders/messaging/commit/c772d30f5d5056f06d41a77cac50eec437bf3438))
+
 ## 0.0.1 (2026-03-30)
 
 
