@@ -1,6 +1,6 @@
 services:
   nats:
-    image: nats:latest@sha256:24e20d33a7214208b1cb699c2e4ebfbed32f7a30b41c18b36be75f019a96616c
+    image: nats:latest@sha256:c6876497e2b72cfad58868914b4a688affced496f522f32c343150e135e2140d
     ports:
       - "4222:4222"
     command: ["-js"]
